@@ -1,0 +1,35 @@
+package com.universidad.servidorproyecto1.analisis;
+
+import java_cup.runtime.*;
+import java.util.ArrayList;
+import java.util.List;
+
+parser code
+{:
+    private Symbol s;
+
+    public void syntax_error(Symbol s){
+        this.s = s;
+    }
+    
+    public Symbol getS(){
+        return this.s;
+    }
+
+:};
+
+terminal COMENTARIO_LINEA, COMENTARIO_MULTILINEA
+;
+
+non terminal inicio, definiciones, ejecucion
+;
+
+/*
+precedence left Oper_Suma, Oper_Resta;
+precedence left Oper_Multi, Oper_Div;
+*/
+
+start with inicio;
+
+INICIO ::= definiciones ejecucion 
+;
