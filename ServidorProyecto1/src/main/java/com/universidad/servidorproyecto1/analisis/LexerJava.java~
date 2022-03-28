@@ -1135,7 +1135,7 @@ public class LexerJava implements java_cup.runtime.Scanner {
             // fall through
           case 115: break;
           case 50:
-            { return symbol(sym.THIS, yytext());
+            { return symbol(sym.THIS yytext());
             }
             // fall through
           case 116: break;
@@ -1155,7 +1155,7 @@ public class LexerJava implements java_cup.runtime.Scanner {
             // fall through
           case 119: break;
           case 54:
-            { return symbol(sym.SUPER, yytext());
+            { return symbol(sym.SUPER yytext());
             }
             // fall through
           case 120: break;

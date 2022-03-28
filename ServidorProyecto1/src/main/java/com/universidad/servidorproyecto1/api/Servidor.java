@@ -10,6 +10,8 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 
+import com.universidad.servidorproyecto1.modelo.ModelAnalisis;
+
 /**
  *
  * @author fernanrod
@@ -22,11 +24,15 @@ public class Servidor {
     public static void iniciar(){
         while (true) {
             try {
+                
+                ModelAnalisis modelAnalisis = new ModelAnalisis();
+
                 serverSocket = new ServerSocket(5252);
                 socket = serverSocket.accept();
                 DataInputStream dis=new DataInputStream(socket.getInputStream());  
                 String  str=(String)dis.readUTF();  
                 System.out.println("message= "+str);  
+                modelAnalisis.analizar(str);
                 enviarRespuesta("proyecto recibido exitosamente");
                 serverSocket.close();  
             } catch (IOException e) {

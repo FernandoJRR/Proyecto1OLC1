@@ -3,33 +3,821 @@ package com.universidad.servidorproyecto1.analisis;
 import java_cup.runtime.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Stack;
+import java.util.Hashtable;
+import java.util.Set;
+import java.util.Map;
+
+import com.universidad.servidorproyecto1.analisis.tablasimbolos.TablaDeSimbolos;
 
 parser code
 {:
     private Symbol s;
+    
+    private TablaDeSimbolos tablaDeSimbolos = new TablaDeSimbolos("Archivo");
+    
+    public TablaDeSimbolos getTablaDeSimbolos(){
+        return tablaDeSimbolos;
+    }
+    
+    private Stack<Symbol> errorStack = new Stack<>();
 
     public void syntax_error(Symbol s){
         this.s = s;
+        errorStack.push(s);
+    }
+
+    public void unrecovered_syntax_error(Symbol s){
+        this.s = s;
+        errorStack.push(s);
+        Symbol e = errorStack.pop();
+        System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\'");
     }
     
     public Symbol getS(){
         return this.s;
     }
 
+/*
+    @Override
+    protected int error_sync_size() {
+        return 3;
+    }
+*/
+
+    public String valueToken(Symbol e){
+        return e.value==null? "EOF" : e.value.toString();
+    }
+    
+    private Stack<Symbol> symbolStack = new Stack<>();
+    
+    private String printExpectedTokens(){
+        List<Integer> simbolos = expected_token_ids();
+        String tokens = "";
+        for(Integer simbolo: simbolos){
+            String simboloActual = symbl_name_from_id(simbolo);
+            tokens += simboloActual+" ";
+        }
+        return tokens;   
+    }
+    
+    //Los datos de la segunda tabla se unen debajo de los de la primera
+    private TablaDeSimbolos unirTablas(TablaDeSimbolos primerTabla, TablaDeSimbolos segundaTabla, String scope){ 
+        TablaDeSimbolos nuevaTabla = new TablaDeSimbolos(scope);
+        Map<Object, String> hashTable1 = primerTabla.getSimbolos();
+        Map<Object, String> hashTable2 = segundaTabla.getSimbolos();
+        Set<Object> llaves1 = hashTable1.keySet();
+        Set<Object> llaves2 = hashTable2.keySet();
+ 
+        for (Object llave : llaves1) {
+            nuevaTabla.agregarEntrada(llave,hashTable1.get(llave));
+        }
+        for (Object llave : llaves2) {
+            nuevaTabla.agregarEntrada(llave,hashTable2.get(llave));
+        }
+        return nuevaTabla;
+    }
+
+    private Stack<TablaDeSimbolos> tablasAuxiliares = new Stack<>();
+    
+    private Stack<Object> stackObjetosTabla = new Stack<>();
+    private Stack<String> stackInformacionTabla = new Stack<>();
+    
+    private String metodoActual = "";
+    
+    private String actualVariable = "";
+    private String variablesActuales = "";
+    
+    
 :};
 
-terminal COMENTARIO_LINEA, COMENTARIO_MULTILINEA
+terminal COMENTARIO_LINEA, COMENTARIO_MULTILINEA, 
+         PR_INT, PR_BOOLEAN, PR_STRING, PR_CHAR, PR_DOUBLE, PR_OBJECT,
+         IF, ELSE, FOR, WHILE, DO, SWITCH, BREAK, RETURN, CASE, DOS_PUNTOS, THIS, SUPER, 
+         PUBLIC, PRIVATE, PROTECTED, DEFAULT, FINAL, IMPORT, CLASS,
+         PUNTO, COMA, PUNTO_COMA, LLAVE_IZQ, LLAVE_DER, PAR_IZQ, PAR_DER, CORCH_IZQ, CORCH_DER,
+         CRUZ, ASTERISCO, GUION, BARRA, MODULO, IGUAL,
+         MENOR_QUE, MAYOR_QUE, IGUALDAD, NO_IGUALDAD, MAYOR_IGUAL, MENOR_IGUAL,
+         AND, OR, NOT,
+         INCREMENT, DECREMENT,
+         STRING, ENTERO, DECIMAL, VARIABLE_IDENTIFICADOR,
+         MENOS_UNITARIO,
+         IGUAL_INCREMENTO, IGUAL_DECREMENTO
 ;
 
-non terminal inicio, definiciones, ejecucion
+non terminal inicio, imports, import_ruta, import_rutad, import_rutadd,
+             definiciones, definicion, visibilidad, visibilidad_clase, definicion_clase, cuerpo_clase, cuerpo_clased,
+             sentencias, declaracion, declaraciond, declaracion_clase, declaracion_tipo, tipo, declaracion_metodo, declaracion_metodod, 
+             declaracion_variable, declaracion_variabled, declaracion_variabledd, declaracion_tipo_variable, declaracion_constructor,
+             llamada_metodo, llamada_metodod, llamada_parametros, llamada_parametrosd,
+             parametros, parametrosd, parametrosdd, cuerpo_metodo, sentencias_metodo,
+             asignacion, asignaciond, expresion, expresion_booleana, incremento,
+             statements, statement, statement_condicional, statement_condicionald, statement_condicion, statement_switch, statement_while,
+             cuerpo_statement, statement_else, cuerpo_switch, casos_switch, statement_do_while, statement_do_whiled
 ;
 
-/*
-precedence left Oper_Suma, Oper_Resta;
-precedence left Oper_Multi, Oper_Div;
-*/
+precedence left CRUZ, GUION;
+precedence left ASTERISCO, BARRA, MODULO;
+precedence left MENOS_UNITARIO;
+
+precedence left NOT;
+precedence left AND;
+precedence left OR;
 
 start with inicio;
 
-INICIO ::= definiciones ejecucion 
+inicio ::= imports definiciones
+;
+
+imports ::= IMPORT import_ruta imports 
+        | {:System.out.println("Se han realizado todas las importaciones");:} 
+
+        
+;
+
+import_ruta ::= VARIABLE_IDENTIFICADOR import_rutad 
+;
+
+import_rutad ::= PUNTO import_rutadd
+
+    | error PUNTO import_rutadd {:Symbol e = errorStack.pop();System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\' se esperaba IDENTIFICADOR");:}
+    | error import_rutadd {:Symbol e = errorStack.pop();System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\' se esperaba PUNTO");:}
+;
+
+import_rutadd ::= VARIABLE_IDENTIFICADOR PUNTO import_rutadd
+    | ASTERISCO PUNTO_COMA {:System.out.println("Importacion realizada");:}
+    | VARIABLE_IDENTIFICADOR PUNTO_COMA {:System.out.println("Importacion realizada");:}
+    
+    | error VARIABLE_IDENTIFICADOR PUNTO import_rutadd {:Symbol e = errorStack.pop();System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\' se esperaba palabra reservada IMPORT antes de este token");:}
+
+    | error PUNTO import_rutadd {:Symbol e = errorStack.pop();System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\' se esperaba IDENTIFICADOR");:}
+    | error PUNTO_COMA {:Symbol e = errorStack.pop();System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\' se esperaba PUNTO");:}
+    | error {:Symbol e = errorStack.pop();System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\' se esperaba PUNTO_COMA antes de este token");:}
+;
+
+definiciones ::= definicion_clase definiciones
+                | {:System.out.println("Definiciones terminadas");:}
+;
+
+definicion_clase ::= visibilidad_clase:visibilidad_clase CLASS VARIABLE_IDENTIFICADOR:className cuerpo_clase:sentencias 
+                    {:
+                    System.out.println("Clase "+className.toString()+" definida");
+                    TablaDeSimbolos tablaClase = new TablaDeSimbolos("Clase");
+                    tablaClase.agregarEntrada((Symbol)visibilidad_clase, "Visibilidad");
+                    tablaClase.agregarEntrada(new Symbol(sym.VARIABLE_IDENTIFICADOR, classNameleft,classNameright,className), "Nombre");
+                    tablaClase.agregarEntrada(sentencias, "Sentencias");
+                    tablaDeSimbolos.agregarEntrada((TablaDeSimbolos)tablaClase, "Clase");
+                    :}
+
+                    | error VARIABLE_IDENTIFICADOR:className cuerpo_clase {:Symbol e = errorStack.pop();
+                            System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\' se esperaba palabra reservada CLASS");
+                            System.out.println("Clase "+className.toString()+" definida");
+                            :}
+
+                    | error cuerpo_clase {:Symbol e = errorStack.pop();
+                            System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\' se esperaba VARIABLE_IDENTIFICADOR");
+                            System.out.println("Clase definida");
+                            :}
+
+;
+
+cuerpo_clase ::= LLAVE_IZQ sentencias:sentencias LLAVE_DER {:RESULT = sentencias;:}
+
+            | error sentencias LLAVE_DER {:Symbol e = errorStack.pop();
+                    System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\' se esperaba LLAVE_IZQ para iniciar la definicion");
+                    :}
+
+            | error declaracion_clase {:Symbol e = errorStack.pop();
+                System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\' se esperaba LLAVE_DER para terminar la definicion");
+            :}
+
+;
+
+visibilidad ::= PUBLIC:public_vis {:RESULT = new Symbol(sym.PUBLIC,public_visleft,public_visright,public_vis);:}
+                | PRIVATE:private_vis {:RESULT = new Symbol(sym.PRIVATE,private_visleft,private_visright,private_vis);:}
+                | PROTECTED:protected_vis {:RESULT = new Symbol(sym.PROTECTED,protected_visleft,protected_visright,protected_vis);:}
+                | FINAL:final_vis {:RESULT = new Symbol(sym.FINAL,final_visleft,final_visright,final_vis);:}
+;
+
+visibilidad_clase ::= PUBLIC:public_vis {:RESULT = new Symbol(sym.PUBLIC,public_visleft,public_visright,public_vis);:}
+                | PRIVATE:private_vis {:RESULT = new Symbol(sym.PRIVATE,private_visleft,private_visright,private_vis);:}
+                | PROTECTED:protected_vis {:RESULT = new Symbol(sym.PROTECTED,protected_visleft,protected_visright,protected_vis);:}
+                | FINAL:final_vis {:RESULT = new Symbol(sym.FINAL,final_visleft,final_visright,final_vis);:}
+                | {:RESULT = new Symbol(sym.DEFAULT,0,0,"");:}
+;
+
+sentencias ::= declaracion:declaracion sentencias:sentencias_var 
+                {:
+                ((TablaDeSimbolos)sentencias_var).agregarEntradaInicio(declaracion,((TablaDeSimbolos)declaracion).getScope());
+                RESULT = sentencias_var;
+                System.out.println(((TablaDeSimbolos)declaracion).getScope());
+                :} 
+
+            | asignacion:asignacion sentencias:sentencias_var
+                {:
+                ((TablaDeSimbolos)sentencias_var).agregarEntradaInicio(asignacion,"Asignacion");
+                RESULT = sentencias_var;
+                :} 
+            | llamada_metodo:llamada_metodo sentencias:sentencias_var
+                {:
+                ((TablaDeSimbolos)sentencias_var).agregarEntradaInicio(llamada_metodo,"Llamada Metodo");
+                RESULT = sentencias_var;
+                :} 
+            | 
+            {:
+            TablaDeSimbolos sentencias = new TablaDeSimbolos("Sentencias");
+            RESULT = sentencias;
+            :}
+;
+
+declaracion ::= visibilidad:visibilidad declaracion_tipo:declaracion_tipo 
+                {:
+                ((TablaDeSimbolos)declaracion_tipo).agregarEntradaInicio(visibilidad, "Visibilidad");
+                RESULT = declaracion_tipo;
+                :}
+            | declaracion_tipo:declaracion_tipo
+                {:
+                ((TablaDeSimbolos)declaracion_tipo).agregarEntradaInicio(new Symbol(sym.DEFAULT,0,0,""), "Visibilidad");
+                RESULT = declaracion_tipo;
+                :}
+
+            | declaracion_constructor:declaracion_constructor
+                {:
+                RESULT = declaracion_constructor;
+                :}
+
+            | visibilidad:visibilidad declaracion_constructor:declaracion_constructor
+                {:
+                ((TablaDeSimbolos)declaracion_constructor).agregarEntradaInicio(visibilidad, "Visibilidad");
+                RESULT = declaracion_constructor;
+                :}
+;
+
+declaracion_constructor ::= declaracion_metodo:declaracion_metodo
+                    {:
+                    RESULT = declaracion_metodo;
+                    :}
+;
+
+declaracion_tipo ::= tipo:tipo declaracion_metodo:declaracion_metodo 
+                    {:
+                    System.out.println("Metodo de tipo "+tipo.toString());
+                    System.out.println(metodoActual);metodoActual="";
+
+                    ((TablaDeSimbolos)declaracion_metodo).agregarEntradaInicio(tipo,"Tipo");
+                    RESULT = declaracion_metodo;
+                    :}
+                    
+                    | tipo:tipo declaracion_variable:declaraciones_variables 
+                    {:
+                    System.out.println("Variable/s de tipo "+tipo.toString());
+                    System.out.println(variablesActuales);variablesActuales="";
+
+                    TablaDeSimbolos tablaDeclaracion = new TablaDeSimbolos("Declaracion Variables");
+                    tablaDeclaracion.agregarEntrada(tipo,"Tipo");
+                    tablaDeclaracion.agregarEntrada(declaraciones_variables,"Variables");
+                    RESULT = tablaDeclaracion;
+                    :}
+;
+
+declaracion_tipo_variable ::= FINAL:final_vis tipo:tipo declaracion_variable:declaraciones_variables 
+                            {:
+                            System.out.println("Variable/s de tipo "+tipo.toString());
+                            System.out.println(variablesActuales);variablesActuales="";
+
+                            ((TablaDeSimbolos)declaraciones_variables).agregarEntradaInicio(tipo, "Tipo");
+                            ((TablaDeSimbolos)declaraciones_variables).agregarEntradaInicio(new Symbol(sym.FINAL,final_visleft,final_visright,final_vis), "Modificador");
+                            RESULT = declaraciones_variables;
+                            :}
+
+                            | tipo:tipo declaracion_variable:declaraciones_variables 
+                            {:
+                            System.out.println("Variable/s de tipo "+tipo.toString());
+                            System.out.println(variablesActuales);variablesActuales="";
+
+                            ((TablaDeSimbolos)declaraciones_variables).agregarEntradaInicio(tipo, "Tipo");
+                            RESULT = declaraciones_variables;
+                            :}
+;
+
+tipo ::= PR_INT:integerType {:RESULT = new Symbol(sym.PR_INT,integerTypeleft,integerTyperight,integerType);:}
+        | PR_BOOLEAN:booleanType {:RESULT = new Symbol(sym.PR_BOOLEAN,booleanTypeleft,booleanTyperight,booleanType);:}
+        | PR_STRING:stringType {:RESULT = new Symbol(sym.PR_STRING,stringTypeleft,stringTyperight,stringType);:}
+        | PR_CHAR:charType {:RESULT = new Symbol(sym.PR_CHAR,charTypeleft,charTyperight,charType);:}
+        | PR_DOUBLE:doubleType {:RESULT = new Symbol(sym.PR_DOUBLE,doubleTypeleft,doubleTyperight,doubleType);:}
+        | PR_OBJECT:objectType {:RESULT = new Symbol(sym.PR_OBJECT,objectTypeleft,objectTyperight,objectType);:}
+        | VARIABLE_IDENTIFICADOR:otherType {:RESULT = new Symbol(sym.VARIABLE_IDENTIFICADOR,otherTypeleft,otherTyperight,otherType);:}
+;
+        
+declaracion_metodo ::= VARIABLE_IDENTIFICADOR:methodName declaracion_metodod:metodo
+                        {:
+                        metodoActual = "Nombre: "+methodName.toString()+"\n"+metodoActual;
+                        ((TablaDeSimbolos)metodo).agregarEntradaInicio(new Symbol(sym.VARIABLE_IDENTIFICADOR,methodNameleft,methodNameright,methodName),
+                                                                        "Identificador");
+                        RESULT = metodo;
+                        :}
+;
+
+declaracion_metodod ::= PAR_IZQ parametros:parametros PAR_DER cuerpo_metodo:cuerpo_metodo 
+                        {:
+                        metodoActual = "Parametros: "+metodoActual;
+
+                        TablaDeSimbolos tablaMetodo = new TablaDeSimbolos("Declaracion Metodo");
+                        tablaMetodo.agregarEntrada(parametros, "Parametros");
+                        tablaMetodo.agregarEntrada(cuerpo_metodo, "Cuerpo");
+                        RESULT = tablaMetodo;
+                        :}
+
+                    | error parametros PAR_DER cuerpo_metodo {:Symbol e = errorStack.pop();
+                    System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\' se esperaba PAR_IZQ");
+                    :}
+                    | error cuerpo_metodo {:Symbol e = errorStack.pop();
+                    System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\' se esperaba PAR_DER");
+                    :}
+
+
+;
+
+parametros ::= tipo:tipo VARIABLE_IDENTIFICADOR:nombreVariable parametrosd:parametros 
+            {:
+            metodoActual = tipo.toString()+" "+nombreVariable.toString()+"\n"+metodoActual;
+            
+            TablaDeSimbolos tablaParametro = new TablaDeSimbolos("Parametro");
+            tablaParametro.agregarEntrada(tipo,"Tipo");
+            tablaParametro.agregarEntrada(new Symbol(sym.VARIABLE_IDENTIFICADOR,nombreVariableleft,nombreVariableright,nombreVariable),"Identificador");
+            ((TablaDeSimbolos)parametros).agregarEntradaInicio(tablaParametro, "Parametro");
+            RESULT = parametros;
+            :}
+
+            | tipo:tipo PUNTO PUNTO PUNTO VARIABLE_IDENTIFICADOR:nombreVariable parametrosd:parametros 
+            {:
+            metodoActual = tipo.toString()+" "+nombreVariable.toString()+"\n"+metodoActual;
+
+            TablaDeSimbolos tablaParametro = new TablaDeSimbolos("Parametro");
+            tablaParametro.agregarEntrada(tipo,"Tipo");
+            tablaParametro.agregarEntrada(new Symbol(sym.VARIABLE_IDENTIFICADOR,nombreVariableleft,nombreVariableright,nombreVariable),"Identificador");
+            ((TablaDeSimbolos)parametros).agregarEntradaInicio(tablaParametro, "Parametro");
+            RESULT = parametros;
+            :}
+
+            | 
+            {:
+            metodoActual += "";
+            RESULT = new TablaDeSimbolos("Parametros");
+            :}
+            
+            | error VARIABLE_IDENTIFICADOR {:Symbol e = errorStack.pop();
+                    System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\', se esperaba TIPO o VARIABLE_IDENTIFICADOR");
+                    :}
+            
+            | error {:Symbol e = errorStack.pop();
+                    System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\', se esperaba VARIABLE_IDENTIFICADOR");
+                    :}
+
+
+;
+
+parametrosd ::= COMA parametrosdd:parametros 
+            {:
+            RESULT = parametros;
+            :}
+
+            |
+            {:
+            TablaDeSimbolos tablaParametros = new TablaDeSimbolos("Parametros");
+            RESULT = tablaParametros;
+            :}
+
+            | error parametrosd {:Symbol e = errorStack.pop();
+                    System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\', se esperaba COMA");
+                    :}
+
+;
+
+parametrosdd ::= tipo:tipo VARIABLE_IDENTIFICADOR:nombreVariable parametrosd:parametros 
+                {:
+                metodoActual = tipo.toString()+" "+nombreVariable.toString()+"\n"+metodoActual;
+
+                TablaDeSimbolos tablaParametro = new TablaDeSimbolos("Parametro");
+                tablaParametro.agregarEntrada(tipo,"Tipo");
+                tablaParametro.agregarEntrada(new Symbol(sym.VARIABLE_IDENTIFICADOR,nombreVariableleft,nombreVariableright,nombreVariable),"Identificador");
+                ((TablaDeSimbolos)parametros).agregarEntrada(tablaParametro, "Parametro");
+                RESULT = parametros;
+                :}
+
+                | tipo:tipo PUNTO PUNTO PUNTO VARIABLE_IDENTIFICADOR:nombreVariable parametrosd:parametros 
+                {:
+                metodoActual = tipo.toString()+" "+nombreVariable.toString()+"\n"+metodoActual;
+
+                TablaDeSimbolos tablaParametro = new TablaDeSimbolos("Parametro");
+                tablaParametro.agregarEntrada(tipo,"Tipo");
+                tablaParametro.agregarEntrada(new Symbol(sym.VARIABLE_IDENTIFICADOR,nombreVariableleft,nombreVariableright,nombreVariable),"Identificador");
+                ((TablaDeSimbolos)parametros).agregarEntrada(tablaParametro, "Parametro");
+                RESULT = parametros;
+                :}
+ 
+                | error VARIABLE_IDENTIFICADOR parametrosd {:Symbol e = errorStack.pop();
+                        System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\', se esperaba TIPO o VARIABLE_IDENTIFICADOR");
+                        :}
+
+                | error {:Symbol e = errorStack.pop();
+                    System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\', se esperaba TIPO o VARIABLE_IDENTIFICADOR");
+                :}
+;
+
+cuerpo_metodo ::= LLAVE_IZQ sentencias_metodo:sentencias LLAVE_DER
+                {:RESULT = sentencias;:}
+;
+
+sentencias_metodo ::= visibilidad:visibilidad declaracion_tipo:declaracion_tipo sentencias_metodo:sentencias
+                    {:
+
+                    ((TablaDeSimbolos)declaracion_tipo).agregarEntradaInicio(visibilidad, "Visibilidad");
+                    ((TablaDeSimbolos)sentencias).agregarEntradaInicio(declaracion_tipo,((TablaDeSimbolos)declaracion_tipo).getScope());
+
+                    RESULT = sentencias;
+                    :}
+
+                    | llamada_metodo:llamada sentencias_metodo:sentencias
+                    {:
+                    ((TablaDeSimbolos)sentencias).agregarEntradaInicio(llamada,"Llamada Metodo");
+                    RESULT = sentencias;
+                    :}
+
+                    | statement:statement sentencias_metodo:sentencias
+                    {:
+                    ((TablaDeSimbolos)sentencias).agregarEntradaInicio(statement,((TablaDeSimbolos)statement).getScope());
+                    RESULT = sentencias;
+                    :}
+                    
+                    | RETURN expresion:exp sentencias_metodo:sentencias
+                    {:
+                    ((TablaDeSimbolos)sentencias).agregarEntradaInicio(exp,"Return");
+                    RESULT = sentencias;
+                    :}
+
+                    |
+                    {:
+                    TablaDeSimbolos tablaSentenciasMetodo = new TablaDeSimbolos("Cuerpo");
+                    RESULT = tablaSentenciasMetodo;
+                    :}
+;
+
+declaracion_variable ::= declaracion_variabled:declaraciones PUNTO_COMA 
+                        {:RESULT = tablasAuxiliares.pop();:}
+
+                        | error 
+                        {:Symbol e = errorStack.pop();
+                            System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\', se esperaba PUNTO_COMA antes de este token");
+                        :}
+;
+
+declaracion_variabled ::= VARIABLE_IDENTIFICADOR:nombreVariable declaracion_variabledd:variables
+                        {:
+                        actualVariable = nombreVariable.toString()+actualVariable; 
+                        variablesActuales = actualVariable+"\n" + variablesActuales; actualVariable="";
+
+                            TablaDeSimbolos tabla = tablasAuxiliares.pop();
+                            TablaDeSimbolos tablaVarible = new TablaDeSimbolos("Variable");
+                            tablaVarible.agregarEntrada(new Symbol(sym.VARIABLE_IDENTIFICADOR, nombreVariableleft,nombreVariableright,nombreVariable),"Identificador");
+
+                            if(variables==null){tablaVarible.agregarEntrada("null","Valor");}
+                            else{tablaVarible.agregarEntrada(variables,"Valor");}
+                            
+                            tabla.agregarEntrada(tablaVarible,"Variable");
+                            tablasAuxiliares.push(tabla);
+                            
+                            RESULT = tabla;
+                        :}
+;
+
+declaracion_variabledd ::= COMA declaracion_variabled 
+                        {:
+                        stackObjetosTabla.push(null);
+                        stackInformacionTabla.push("Valor");
+                        
+                            RESULT = null;
+                        :}
+                        | IGUAL expresion:expresion COMA declaracion_variabled 
+                        {:
+                        actualVariable = "="+expresion.toString()+actualVariable;
+                        stackObjetosTabla.push(expresion.toString());
+                        stackInformacionTabla.push("Valor");
+
+                            RESULT = expresion;
+                        :}
+                        | IGUAL expresion:expresion
+                        {:
+                            actualVariable = "="+expresion.toString()+actualVariable;
+                            stackObjetosTabla.push(expresion.toString());
+                            stackInformacionTabla.push("Valor");
+
+                            tablasAuxiliares.push(new TablaDeSimbolos("Variables"));
+                            RESULT = expresion;
+                        :}
+                        | 
+                        {:
+                            tablasAuxiliares.push(new TablaDeSimbolos("Variables"));
+                            RESULT = null;
+                        :}
+                        
+                        | error COMA declaracion_variabled {:Symbol e = errorStack.pop();
+                            System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\', se esperaba VARIABLE_IDENTIFICADOR o EXPRESION antes de este token");
+                        :}
+                        
+                        | error IGUAL expresion COMA declaracion_variabledd {:Symbol e = errorStack.pop();
+                            System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\', se esperaba VARIABLE_IDENTIFICADOR antes de este token");
+                        :}
+;
+
+llamada_metodo ::= VARIABLE_IDENTIFICADOR:nombreVariable llamada_metodod:parametros 
+                    {:
+                    TablaDeSimbolos tablaLlamada = new TablaDeSimbolos("Llamada Metodo");
+                    tablaLlamada.agregarEntrada(new Symbol(sym.VARIABLE_IDENTIFICADOR,nombreVariableleft,nombreVariableright,nombreVariable),"Identificador");
+                    tablaLlamada.agregarEntrada(parametros,"Parametros");
+                    
+                    RESULT = tablaLlamada;
+                    :}
+;
+
+llamada_metodod ::= PAR_IZQ llamada_parametros:parametros PAR_DER 
+                    {:
+                    RESULT = parametros;
+                    :}
+;
+
+llamada_parametros ::= expresion:exp llamada_parametrosd:resto 
+                    {:
+                    ((TablaDeSimbolos)resto).agregarEntrada(exp,"Parametro");
+                    RESULT = resto;
+                    :}
+
+                    | 
+                    {:
+                    TablaDeSimbolos tablaParametros = new TablaDeSimbolos("Parametros");
+                    RESULT = tablaParametros;
+                    :}
+;
+
+llamada_parametrosd ::= COMA expresion:exp llamada_parametrosd:resto 
+                    {:
+                    ((TablaDeSimbolos)resto).agregarEntrada(exp,"Parametro");
+                    RESULT = resto;
+                    :}
+
+                    | 
+                    {:
+                    TablaDeSimbolos tablaParametros = new TablaDeSimbolos("Parametros");
+                    RESULT = tablaParametros;
+                    :}
+;
+
+expresion ::= expresion:exp1 CRUZ expresion:exp2 {:RESULT = exp1.toString()+"+"+exp2.toString();:}  
+            | expresion:exp1 GUION expresion:exp2 {:RESULT = exp1.toString()+"-"+exp2.toString();:}   
+            | expresion:exp1 ASTERISCO expresion:exp2 {:RESULT = exp1.toString()+"*"+exp2.toString();:}   
+            | expresion:exp1 BARRA expresion:exp2 {:RESULT = exp1.toString()+"/"+exp2.toString();:}   
+            | expresion:exp1 MODULO expresion:exp2 {:RESULT = exp1.toString()+"%"+exp2.toString();:}   
+            | GUION expresion:exp1 {:RESULT = "-"+exp1.toString();:} %prec MENOS_UNITARIO 
+            | PAR_IZQ expresion:exp1 PAR_DER {:RESULT = "("+exp1.toString()+")";:}   
+
+            | STRING:cadena {:RESULT = cadena.toString();:} 
+            | llamada_metodo:llamada {:RESULT = llamada.toString();:}
+            | ENTERO:entero {:RESULT = entero.toString();:}
+            | DECIMAL:decimal {:RESULT = decimal.toString();:}
+            | VARIABLE_IDENTIFICADOR:nombreVariable {:RESULT = nombreVariable.toString();:}
+            | THIS PUNTO VARIABLE_IDENTIFICADOR:nombreVariable {:RESULT = nombreVariable.toString();:}
+            | SUPER PUNTO VARIABLE_IDENTIFICADOR:nombreVariable {:RESULT = nombreVariable.toString();:}
+            | incremento:increment {:RESULT = increment.toString();:}
+            
+            | error expresion:exp {:Symbol e = errorStack.pop();
+                System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\', expresion mal definida");
+                RESULT = exp.toString();
+            :}
+;
+
+incremento ::= llamada_metodo:llamada INCREMENT {:RESULT = llamada.toString()+"++";:}
+            | llamada_metodo:llamada DECREMENT {:RESULT = llamada.toString()+"--";:}
+            | ENTERO:entero INCREMENT {:RESULT = entero.toString()+"++";:}
+            | ENTERO:entero DECREMENT {:RESULT = entero.toString()+"--";:}
+            | DECIMAL:decimal INCREMENT {:RESULT = decimal.toString()+"--";:}
+            | DECIMAL:decimal DECREMENT {:RESULT = decimal.toString()+"--";:}
+            | VARIABLE_IDENTIFICADOR:nombreVariable INCREMENT {:RESULT = nombreVariable.toString()+"++";:}
+            | VARIABLE_IDENTIFICADOR:nombreVariable DECREMENT {:RESULT = nombreVariable.toString()+"--";:}
+            | THIS PUNTO VARIABLE_IDENTIFICADOR:nombreVariable DECREMENT {:RESULT = nombreVariable.toString()+"--";:}
+            | SUPER PUNTO VARIABLE_IDENTIFICADOR:nombreVariable DECREMENT {:RESULT = nombreVariable.toString()+"--";:}
+;
+
+statements ::= statement:statement statements:statements
+            {:
+            ((TablaDeSimbolos)statements).agregarEntrada(statement,((TablaDeSimbolos)statement).getScope());
+            RESULT = statements;
+            :}
+
+            | 
+            {:
+            TablaDeSimbolos tablaStatements = new TablaDeSimbolos("Statements");
+            RESULT = tablaStatements;
+            :}
+;
+
+statement ::= statement_condicional:condicional
+            {:RESULT = condicional;:}
+
+            | statement_while:while_stmt
+            {:RESULT = while_stmt;:}
+            
+            | statement_switch:switch_stmt
+            {:RESULT = switch_stmt;:}
+            
+            | statement_do_while:do_stmt
+            {:RESULT = do_stmt;:}
+            
+            | asignacion:asignacion
+            {:RESULT = asignacion;:}
+            
+            | declaracion_tipo:declaracion_tipo
+            {:RESULT = declaracion_tipo;:}
+            
+            | incremento:incremento
+            {:RESULT = incremento;:}
+            
+            | llamada_metodo:llamada_metodo PUNTO_COMA
+            {:RESULT = llamada_metodo;:}
+;
+
+statement_condicional ::= IF statement_condicion:condicion cuerpo_statement:cuerpo statement_condicionald:else_stmt
+                        {:
+                        TablaDeSimbolos tablaCondicional = new TablaDeSimbolos("If Statement");
+                        tablaCondicional.agregarEntrada(condicion, "Condicion");
+                        System.out.println("Aqui1");
+                        tablaCondicional.agregarEntrada(cuerpo, "Cuerpo");
+                        System.out.println("Aqui2");
+                        
+                        if(else_stmt != null){
+                            tablaCondicional.agregarEntrada(else_stmt, "Else");
+                        }
+                        
+                        RESULT = tablaCondicional;
+                        :}
+                        
+                        | error statement_condicion cuerpo_statement statement_condicionald {:Symbol e = errorStack.pop();
+                            System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\', se esperaba palabra reservada IF o WHILE");
+                        :}
+
+;
+
+statement_condicionald ::= statement_else:else_stmt
+                        {:RESULT = else_stmt;:}
+
+                        | {:RESULT = null;:}
+;
+
+statement_while ::= WHILE statement_condicion:condicion cuerpo_statement:cuerpo
+                    {:
+                    TablaDeSimbolos tablaWhile = new TablaDeSimbolos("While Statement");
+                    tablaWhile.agregarEntrada(condicion, "Condicion");
+                    tablaWhile.agregarEntrada(cuerpo, "Cuerpo");
+                    
+                    RESULT = tablaWhile;
+                    :}
+;
+
+statement_switch ::= SWITCH PAR_IZQ expresion:exp PAR_DER cuerpo_switch:cuerpo
+                    {:
+                    TablaDeSimbolos tablaSwitch = new TablaDeSimbolos("Switch Statement");
+                    tablaSwitch.agregarEntrada(exp, "Expresion");
+                    tablaSwitch.agregarEntrada(cuerpo, "Cuerpo");
+                    
+                    RESULT = tablaSwitch;
+                    :}
+;
+
+statement_condicion ::= PAR_IZQ expresion_booleana:expresion PAR_DER
+                        {:
+                        RESULT = expresion;
+                        :}
+;
+
+statement_else ::= ELSE cuerpo_statement:cuerpo
+                {:
+                TablaDeSimbolos tablaElse = new TablaDeSimbolos("Else Statement");
+                tablaElse.agregarEntrada(cuerpo, "Cuerpo");
+                RESULT = tablaElse;
+                :}
+
+                | ELSE statement_condicional:if_stmt
+                {:
+                TablaDeSimbolos tablaElse = new TablaDeSimbolos("Else Statement");
+                tablaElse.agregarEntrada(if_stmt, "If Statement");
+                RESULT = tablaElse;
+                :}
+;
+
+cuerpo_statement ::= LLAVE_IZQ statements:statements LLAVE_DER
+                    {:RESULT = statements;:}
+;
+
+cuerpo_switch ::= LLAVE_IZQ casos_switch:casos LLAVE_DER
+                {:RESULT = casos;:}
+;
+
+casos_switch ::= CASE expresion:exp DOS_PUNTOS statements:statements casos_switch:resto_casos
+                {:
+                TablaDeSimbolos tablaCaso = new TablaDeSimbolos("Caso");
+                tablaCaso.agregarEntrada(exp, "Expresion");
+                tablaCaso.agregarEntrada(statements, "Statements");
+                ((TablaDeSimbolos)resto_casos).agregarEntrada(tablaCaso,"Caso");
+                RESULT = resto_casos;
+                :}
+
+                | DEFAULT DOS_PUNTOS statements:statements casos_switch:resto_casos
+                {:
+                TablaDeSimbolos tablaCaso = new TablaDeSimbolos("Default");
+                tablaCaso.agregarEntrada(statements, "Statements");
+                ((TablaDeSimbolos)resto_casos).agregarEntrada(tablaCaso,"Default");
+                RESULT = resto_casos;
+                :}
+
+                | BREAK:break_sym PUNTO_COMA casos_switch:resto_casos
+                {:
+                ((TablaDeSimbolos)resto_casos).agregarEntrada(new Symbol(sym.BREAK,break_symleft,break_symright,break_sym),"Break");
+                RESULT = resto_casos;
+                :}
+
+                | 
+                {:
+                TablaDeSimbolos tablaCasos = new TablaDeSimbolos("Casos");
+                RESULT = tablaCasos;
+                :}
+;
+
+statement_do_while ::= DO cuerpo_statement:cuerpo statement_do_whiled:condicion_while
+                    {:
+                    TablaDeSimbolos tablaDo = new TablaDeSimbolos("Do While");
+                    tablaDo.agregarEntrada(cuerpo, "Cuerpo");
+                    tablaDo.agregarEntrada(condicion_while, "Condicion While");
+                    RESULT = tablaDo;
+                    :}
+;
+
+statement_do_whiled ::= WHILE statement_condicion:condicion PUNTO_COMA
+                    {:
+                    RESULT = condicion;
+                    :}
+;
+
+expresion_booleana ::= expresion:exp1 MAYOR_QUE expresion:exp2 {:RESULT = exp1.toString()+">"+exp2.toString();:}  
+                    | expresion:exp1 MENOR_QUE expresion:exp2 {:RESULT = exp1.toString()+"<"+exp2.toString();:}  
+                    | expresion:exp1 IGUALDAD expresion:exp2 {:RESULT = exp1.toString()+"=="+exp2.toString();:}  
+                    | expresion:exp1 NO_IGUALDAD expresion:exp2 {:RESULT = exp1.toString()+"!="+exp2.toString();:}   
+                    | expresion:exp1 MAYOR_IGUAL expresion:exp2 {:RESULT = exp1.toString()+">="+exp2.toString();:}  
+                    | expresion:exp1 MENOR_IGUAL expresion:exp2 {:RESULT = exp1.toString()+"<="+exp2.toString();:}  
+                    
+                    | NOT expresion_booleana:exp {:RESULT = "!"+exp.toString();:}  
+                    | expresion_booleana:exp1 OR expresion_booleana:exp2 {:RESULT = exp1.toString()+"||"+exp2.toString();:}  
+                    | expresion_booleana:exp1 AND expresion_booleana:exp2 {:RESULT = exp1.toString()+"&&"+exp2.toString();:}  
+                    | PAR_IZQ expresion_booleana:exp PAR_DER {:RESULT = "("+exp.toString()+")";:}  
+;
+
+asignacion ::= VARIABLE_IDENTIFICADOR:nombreVariable asignaciond:asignacion 
+                {:
+                System.out.println("Asignacion a "+nombreVariable.toString());
+                TablaDeSimbolos tablaAsignacion = new TablaDeSimbolos("Asignacion");
+                tablaAsignacion.agregarEntrada(new Symbol(sym.VARIABLE_IDENTIFICADOR, nombreVariableleft, nombreVariableright,nombreVariable),"Identificador");
+                tablaAsignacion.agregarEntrada(asignacion,"Valor");
+                RESULT = tablaAsignacion;
+                :}
+
+                | THIS PUNTO VARIABLE_IDENTIFICADOR:nombreVariable asignaciond:asignacion 
+                {:
+                System.out.println("Asignacion a "+nombreVariable.toString());
+                TablaDeSimbolos tablaAsignacion = new TablaDeSimbolos("Asignacion");
+                tablaAsignacion.agregarEntrada(new Symbol(sym.VARIABLE_IDENTIFICADOR, nombreVariableleft, nombreVariableright,nombreVariable),"Identificador");
+                tablaAsignacion.agregarEntrada(asignacion,"Valor");
+                RESULT = tablaAsignacion;
+                :}
+
+                | SUPER PUNTO VARIABLE_IDENTIFICADOR:nombreVariable asignaciond:asignacion 
+                {:
+                System.out.println("Asignacion a "+nombreVariable.toString());
+                TablaDeSimbolos tablaAsignacion = new TablaDeSimbolos("Asignacion");
+                tablaAsignacion.agregarEntrada(new Symbol(sym.VARIABLE_IDENTIFICADOR, nombreVariableleft, nombreVariableright,nombreVariable),"Identificador");
+                tablaAsignacion.agregarEntrada(asignacion,"Valor");
+                RESULT = tablaAsignacion;
+                :}
+
+;
+
+asignaciond ::= IGUAL expresion:exp PUNTO_COMA
+            {:RESULT = exp;:}
+            | IGUAL expresion_booleana:exp PUNTO_COMA
+            {:RESULT = exp;:}
+            | IGUAL_INCREMENTO expresion:exp PUNTO_COMA
+            {:RESULT = exp;:}
+            | IGUAL_DECREMENTO expresion:exp PUNTO_COMA
+            {:RESULT = exp;:}
+            | IGUAL_INCREMENTO expresion_booleana:exp PUNTO_COMA
+            {:RESULT = exp;:}
+            | IGUAL_DECREMENTO expresion_booleana:exp PUNTO_COMA
+            {:RESULT = exp;:}
 ;

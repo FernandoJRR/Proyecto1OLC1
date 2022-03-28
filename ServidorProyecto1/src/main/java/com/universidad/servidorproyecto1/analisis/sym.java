@@ -8,15 +8,131 @@ package com.universidad.servidorproyecto1.analisis;
 /** CUP generated class containing symbol constants. */
 public class sym {
   /* terminals */
-  public static final int error = 1;
+  public static final int PAR_DER = 35;
+  public static final int PR_INT = 4;
+  public static final int INCREMENT = 53;
+  public static final int PR_OBJECT = 9;
+  public static final int IGUAL_DECREMENTO = 61;
+  public static final int CORCH_IZQ = 36;
+  public static final int ENTERO = 56;
+  public static final int CASE = 18;
+  public static final int DOS_PUNTOS = 19;
+  public static final int PRIVATE = 23;
+  public static final int ASTERISCO = 39;
   public static final int COMENTARIO_LINEA = 2;
-  public static final int COMENTARIO_MULTILINEA = 3;
+  public static final int DECREMENT = 54;
+  public static final int FOR = 12;
+  public static final int NOT = 52;
+  public static final int AND = 50;
+  public static final int LLAVE_IZQ = 32;
+  public static final int NO_IGUALDAD = 47;
+  public static final int IGUAL = 43;
+  public static final int CRUZ = 38;
+  public static final int OR = 51;
+  public static final int IGUALDAD = 46;
+  public static final int CLASS = 28;
+  public static final int GUION = 40;
+  public static final int IF = 10;
+  public static final int THIS = 20;
+  public static final int PUNTO_COMA = 31;
+  public static final int PR_BOOLEAN = 5;
+  public static final int DECIMAL = 57;
   public static final int EOF = 0;
+  public static final int RETURN = 17;
+  public static final int SUPER = 21;
+  public static final int error = 1;
+  public static final int CORCH_DER = 37;
+  public static final int COMA = 30;
+  public static final int MODULO = 42;
+  public static final int MAYOR_QUE = 45;
+  public static final int PR_STRING = 6;
+  public static final int PAR_IZQ = 34;
+  public static final int BREAK = 16;
+  public static final int PR_CHAR = 7;
+  public static final int SWITCH = 15;
+  public static final int IMPORT = 27;
+  public static final int VARIABLE_IDENTIFICADOR = 58;
+  public static final int BARRA = 41;
+  public static final int COMENTARIO_MULTILINEA = 3;
+  public static final int ELSE = 11;
+  public static final int LLAVE_DER = 33;
+  public static final int PROTECTED = 24;
+  public static final int PUNTO = 29;
+  public static final int FINAL = 26;
+  public static final int WHILE = 13;
+  public static final int MAYOR_IGUAL = 48;
+  public static final int DEFAULT = 25;
+  public static final int PUBLIC = 22;
+  public static final int MENOS_UNITARIO = 59;
+  public static final int STRING = 55;
+  public static final int MENOR_QUE = 44;
+  public static final int MENOR_IGUAL = 49;
+  public static final int PR_DOUBLE = 8;
+  public static final int DO = 14;
+  public static final int IGUAL_INCREMENTO = 60;
   public static final String[] terminalNames = new String[] {
   "EOF",
   "error",
   "COMENTARIO_LINEA",
-  "COMENTARIO_MULTILINEA"
+  "COMENTARIO_MULTILINEA",
+  "PR_INT",
+  "PR_BOOLEAN",
+  "PR_STRING",
+  "PR_CHAR",
+  "PR_DOUBLE",
+  "PR_OBJECT",
+  "IF",
+  "ELSE",
+  "FOR",
+  "WHILE",
+  "DO",
+  "SWITCH",
+  "BREAK",
+  "RETURN",
+  "CASE",
+  "DOS_PUNTOS",
+  "THIS",
+  "SUPER",
+  "PUBLIC",
+  "PRIVATE",
+  "PROTECTED",
+  "DEFAULT",
+  "FINAL",
+  "IMPORT",
+  "CLASS",
+  "PUNTO",
+  "COMA",
+  "PUNTO_COMA",
+  "LLAVE_IZQ",
+  "LLAVE_DER",
+  "PAR_IZQ",
+  "PAR_DER",
+  "CORCH_IZQ",
+  "CORCH_DER",
+  "CRUZ",
+  "ASTERISCO",
+  "GUION",
+  "BARRA",
+  "MODULO",
+  "IGUAL",
+  "MENOR_QUE",
+  "MAYOR_QUE",
+  "IGUALDAD",
+  "NO_IGUALDAD",
+  "MAYOR_IGUAL",
+  "MENOR_IGUAL",
+  "AND",
+  "OR",
+  "NOT",
+  "INCREMENT",
+  "DECREMENT",
+  "STRING",
+  "ENTERO",
+  "DECIMAL",
+  "VARIABLE_IDENTIFICADOR",
+  "MENOS_UNITARIO",
+  "IGUAL_INCREMENTO",
+  "IGUAL_DECREMENTO"
   };
 }
 

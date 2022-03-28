@@ -1,5 +1,6 @@
 package com.universidad.servidorproyecto1.interfaz;
 
+
 import java.awt.BorderLayout;
 import java.io.IOException;
 import java.nio.file.Files;

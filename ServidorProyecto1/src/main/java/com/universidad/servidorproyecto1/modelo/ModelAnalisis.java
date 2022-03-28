@@ -1,35 +1,30 @@
 package com.universidad.servidorproyecto1.modelo;
 
-import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
 
 import com.universidad.servidorproyecto1.analisis.LexerJava;
-
-import java_cup.runtime.Symbol;
+import com.universidad.servidorproyecto1.analisis.ParserJava;
 
 public class ModelAnalisis {
     private ArrayList<AnalysisError> errores = new ArrayList<>();
     private LexerJava lexer;
+    private ParserJava parser;
     
     public String analizar(String input){
         String output = "";
         output += "Analisis Iniciado\n";
         StringReader stringReader = new StringReader(input);
         lexer = new LexerJava(stringReader);
-        output += "Analisis Lexico Iniciado\n";
-        while (!lexer.yyatEOF()) {
-            try {
-                Symbol simbolo = lexer.next_token();
-                System.out.println(simbolo.value);
-            } catch (IOException e) {
-                output += "Error Fatal. Analisis lexico fallido\n";
-                e.printStackTrace();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+        parser = new ParserJava(lexer);
+        output += "Iniciadno Analisis Lexico/Sintactico\n";
+        try {
+            parser.debug_parse();
+        } catch (Exception e) {
+            output += "Error Fatal. El analisis no ha podido ser terminado";
+            e.printStackTrace();
         }
-        output += "Analisis Lexico Terminado Exitosamente\n";
+        output += "Analisis Lexico/Sintactico Terminado Exitosamente\n";
         
         return output;
     }
