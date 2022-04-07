@@ -5,6 +5,9 @@ import java.util.ArrayList;
 
 import com.universidad.appproyecto1.analisis.CompileError;
 import com.universidad.appproyecto1.analisis.ParJSON;
+import com.universidad.appproyecto1.analisis.TablaDeSimbolos;
+import com.universidad.appproyecto1.analisis.analisisDef.LexerDef;
+import com.universidad.appproyecto1.analisis.analisisDef.ParserDef;
 import com.universidad.appproyecto1.analisis.analisisJSON.LexerJSON;
 import com.universidad.appproyecto1.analisis.analisisJSON.ParserJSON;
 
@@ -38,11 +41,6 @@ public class ModelAnalisis {
         if (erroresJSON.size()==0) {
             ParJSON[] objetosJSON = parser.getObjetosJSON();   
             recorrerListaPares(objetosJSON, 0);
-            
-            System.out.println(erroresJSON.toString());
-        } else {
-            System.out.println("No se realizo el analisis semantico");
-            System.out.println(erroresJSON.toString());
         }
     }
     
@@ -326,8 +324,28 @@ public class ModelAnalisis {
         }
     }
     
-    public static void analizarDef(String contenidoDef){
+    public static void analizarDef(String contenidoDef) throws Exception{
+        erroresDef = new ArrayList<>();
+        LexerDef lexer = new LexerDef(new StringReader(contenidoDef));
+        lexer.setErrores(erroresDef);
+        ParserDef parser = new ParserDef(lexer);
+        parser.setErroresEncontrados(erroresDef);
         
+        parser.parse();
+        
+        if (erroresDef.size()==0) {
+            System.out.println("Parseo exitoso");
+            interpretarDef(parser.getTablaDeSimbolos());
+            System.out.println(TablaDeSimbolos.getHtmlGenerado());
+        } else {
+            for (CompileError error : erroresDef) {
+                System.out.println(error);
+            }
+        }
+    }
+    
+    public static void interpretarDef(TablaDeSimbolos tablaDef){
+        tablaDef.recorrerTabla();
     }
     
     public static void generarReporte(){

@@ -9,6 +9,7 @@ import java.util.Set;
 import java.util.Map;
 import java.util.LinkedList;
 import com.universidad.appproyecto1.analisis.CompileError;
+import com.universidad.appproyecto1.analisis.TablaDeSimbolos;
 
 parser code
 {:
@@ -45,16 +46,21 @@ parser code
         return this.s;
     }
 
+    private TablaDeSimbolos tablaDeSimbolos = new TablaDeSimbolos("Programa");
+    
+    public TablaDeSimbolos getTablaDeSimbolos(){
+        return tablaDeSimbolos;
+    }
 :};
 
-terminal PR_INTEGER, PR_STRING, TAG_HTML, TAG_HEADER, TAG_TABLE, TAG_FOR, ITERADOR, HASTA, TAG_TR, TAG_TH, TAG_TD, TAG_BR, RESULT,
+terminal PR_INTEGER, PR_STRING, TAG_HTML, TAG_HEADER, TAG_TABLE, TAG_FOR, ITERADOR, HASTA, TAG_TR, TAG_TH, TAG_TD, TAG_BR, RESULT, FIN_TAG,
         PUNTO,COMA,DOS_PUNTOS,PUNTO_COMA,LLAVE_IZQ,LLAVE_DER,PAR_IZQ,PAR_DER,CORCH_IZQ,CORCH_DER, MENOS_UNITARIO,
-        CRUZ,ASTERISCO,GUION,BARRA,IGUAL,MAYOR_QUE,MENOR_QUE,DOLAR,ENTERO,VARIABLE_IDENTIFICADOR, STRING, TEXTO
+        CRUZ,ASTERISCO,GUION,BARRA,IGUAL,MAYOR_QUE,MENOR_QUE,DOLAR,DOBLE_DOLAR,ENTERO,VARIABLE_IDENTIFICADOR, STRING, TEXTO
 ;
 
-non terminal inicio, declaracion_variables, declaracion_variable, declaracion_html, declaraciones_etiquetas, etiqueta,
-            tag_for, acceso_variable, variable, texto_plano,
-            declaraciond, asignacion, result, resultd, resultdd, expresion, expresion_matematica, valor_numerico
+non terminal inicio, declaracion_variables, declaracion_variable, declaracion_html, declaraciones_etiquetas, etiqueta, etiquetad,
+            tag_for, acceso_variable, variable, texto_plano, texto,
+            declaraciond, declaraciondd, asignacion, result, resultd, resultdd, expresion, expresion_matematica, valor_numerico
 ;
 
 precedence left CRUZ, GUION;
@@ -63,104 +69,379 @@ precedence left MENOS_UNITARIO;
 
 start with inicio;
 
-inicio ::= declaracion_variables declaracion_html
+inicio ::= declaracion_variables:variables declaracion_html:html
+        {:
+        tablaDeSimbolos.agregarEntrada(variables,"Declaracion Variables");
+        tablaDeSimbolos.agregarEntrada(html,"Definicion HTML");
+        :}
 ;
 
-declaracion_variables ::= declaracion_variable declaracion_variables
-                        | asignacion declaracion_variables
+declaracion_variables ::= declaracion_variable:declaracion declaracion_variables:tablaDeclaraciones
+                        {:
+                        ((TablaDeSimbolos)tablaDeclaraciones).agregarEntradaInicio(declaracion,"Declaracion Variable");
+                        RESULT = tablaDeclaraciones;
+                        :}
+                        | asignacion:asignacion declaracion_variables:tablaDeclaraciones
+                        {:
+                        ((TablaDeSimbolos)tablaDeclaraciones).agregarEntradaInicio(asignacion,"Asignacion Variable");
+                        RESULT = tablaDeclaraciones;
+                        :}
+                        | {:RESULT = new TablaDeSimbolos("Declaracion Variables");:}
 ;
 
-declaracion_variable ::= PR_INTEGER declaraciond
-                        | PR_STRING declaraciond
+declaracion_variable ::= PR_INTEGER:integer declaraciond:declaracion
+                        {:
+                        ((TablaDeSimbolos)declaracion).agregarEntradaInicio(new Symbol(sym.PR_INTEGER, integerleft,integerright,integer),"Tipo");
+                        RESULT = declaracion;
+                        :}
+                        | PR_STRING:string declaraciond:declaracion
+                        {:
+                        ((TablaDeSimbolos)declaracion).agregarEntradaInicio(new Symbol(sym.PR_STRING, stringleft,stringright,string),"Tipo");
+                        RESULT = declaracion;
+                        :}
 ;
 
-declaraciond ::= VARIABLE_IDENTIFICADOR PUNTO_COMA
-                | asignacion
+declaraciond ::= VARIABLE_IDENTIFICADOR:variable declaraciondd:declaracion
+                {:
+                ((TablaDeSimbolos)declaracion).agregarEntradaInicio(new Symbol(sym.VARIABLE_IDENTIFICADOR,variableleft,variableright,variable),"Identificador");
+                RESULT = declaracion;
+                :}
+                | asignacion:asignacion
+                {:
+                TablaDeSimbolos tabla = new TablaDeSimbolos("Declaracion Variable");
+                tabla.agregarEntrada(asignacion, "Asignacion");
+                RESULT = tabla;
+                :}
 ;
 
-asignacion ::= VARIABLE_IDENTIFICADOR IGUAL expresion PUNTO_COMA
+declaraciondd ::= PUNTO_COMA
+                {:
+                RESULT = new TablaDeSimbolos("Declaracion Variable");
+                :}
+
+                | COMA VARIABLE_IDENTIFICADOR:variable declaraciondd:declaracion
+                {:
+                ((TablaDeSimbolos)declaracion).agregarEntradaInicio(new Symbol(sym.VARIABLE_IDENTIFICADOR,variableleft,variableright,variable),"Identificador");
+                RESULT = declaracion;
+                :}
 ;
 
-declaracion_html ::= MENOR_QUE TAG_HTML MAYOR_QUE declaraciones_etiquetas MENOR_QUE BARRA TAG_HTML MAYOR_QUE
-                    |
+asignacion ::= VARIABLE_IDENTIFICADOR:variable IGUAL expresion:valor PUNTO_COMA
+            {:
+            TablaDeSimbolos tabla = new TablaDeSimbolos("Asignacion");
+            tabla.agregarEntrada(new Symbol(sym.VARIABLE_IDENTIFICADOR,variableleft,variableright,variable),"Identificador");
+            tabla.agregarEntrada(valor,"Valor");
+            RESULT = tabla;
+            :}
 ;
 
-declaraciones_etiquetas ::= etiqueta
-                        | acceso_variable
-                        | texto_plano
+declaracion_html ::= MENOR_QUE TAG_HTML:tagApertura MAYOR_QUE declaraciones_etiquetas:hijos FIN_TAG TAG_HTML:tagCerrar MAYOR_QUE
+                    {:
+                    TablaDeSimbolos tabla = new TablaDeSimbolos("Definicion HTML");
+                    tabla.agregarEntrada(new Symbol(sym.TAG_HTML,tagAperturaleft,tagAperturaright,tagApertura),"Tag Abre");
+                    tabla.agregarEntrada(hijos, "Hijos");
+                    tabla.agregarEntrada(new Symbol(sym.TAG_HTML,tagCerrarleft,tagCerrarright,tagCerrar),"Tag Cierra");
+                    RESULT = tabla;
+                    :}
+                    | {:RESULT = new TablaDeSimbolos("Definicion HTML");:}
 ;
 
-texto_plano ::= TEXTO //FALTA DEFINIR MEJOR ESTO
+declaraciones_etiquetas ::= etiqueta:etiqueta declaraciones_etiquetas:hijos
+                        {:
+                        ((TablaDeSimbolos)hijos).agregarEntradaInicio(etiqueta,((TablaDeSimbolos)etiqueta).getScope());
+                        RESULT = hijos;
+                        :}
+                        | acceso_variable:acceso declaraciones_etiquetas:hijos
+                        {:
+                        ((TablaDeSimbolos)hijos).agregarEntradaInicio(acceso,"Acceso Variable");
+                        RESULT = hijos;
+                        :}
+                        | texto_plano:texto declaraciones_etiquetas:hijos
+                        {:
+                        ((TablaDeSimbolos)hijos).agregarEntradaInicio(texto.toString(),"Texto");
+                        RESULT = hijos;
+                        :}
+                        | {:RESULT = new TablaDeSimbolos("Hijos");:}
 ;
 
-etiqueta ::= MENOR_QUE TAG_HTML MAYOR_QUE declaraciones_etiquetas MENOR_QUE BARRA TAG_HTML MAYOR_QUE
-            | MENOR_QUE TAG_HEADER MAYOR_QUE declaraciones_etiquetas MENOR_QUE BARRA TAG_HEADER MAYOR_QUE
-            | MENOR_QUE TAG_TABLE MAYOR_QUE declaraciones_etiquetas MENOR_QUE BARRA TAG_TABLE MAYOR_QUE
-            | MENOR_QUE tag_for MAYOR_QUE declaraciones_etiquetas MENOR_QUE BARRA TAG_FOR MAYOR_QUE
-            | MENOR_QUE TAG_TR MAYOR_QUE declaraciones_etiquetas MENOR_QUE BARRA TAG_TR MAYOR_QUE
-            | MENOR_QUE TAG_TH MAYOR_QUE declaraciones_etiquetas MENOR_QUE BARRA TAG_TH MAYOR_QUE
-            | MENOR_QUE TAG_TD MAYOR_QUE declaraciones_etiquetas MENOR_QUE BARRA TAG_TD MAYOR_QUE
-            | MENOR_QUE TAG_BR MAYOR_QUE declaraciones_etiquetas 
+etiqueta ::= MENOR_QUE TAG_HEADER:tagAbre MAYOR_QUE declaraciones_etiquetas:hijos FIN_TAG TAG_HEADER:tagCierra MAYOR_QUE
+            {:
+            TablaDeSimbolos tabla = new TablaDeSimbolos("Tag Header");
+            tabla.agregarEntrada(new Symbol(sym.TAG_HEADER,tagAbreleft,tagAbreright,tagAbre),"Tag Abre");
+            tabla.agregarEntrada(hijos, "Hijos");
+            tabla.agregarEntrada(new Symbol(sym.TAG_HEADER,tagCierraleft,tagCierraright,tagCierra),"Tag Cierra");
+            RESULT = tabla;
+            :}
+
+            | MENOR_QUE TAG_TABLE:tagAbre MAYOR_QUE declaraciones_etiquetas:hijos FIN_TAG TAG_TABLE:tagCierra MAYOR_QUE
+            {:
+            TablaDeSimbolos tabla = new TablaDeSimbolos("Tag Table");
+            tabla.agregarEntrada(new Symbol(sym.TAG_TABLE,tagAbreleft,tagAbreright,tagAbre),"Tag Abre");
+            tabla.agregarEntrada(hijos, "Hijos");
+            tabla.agregarEntrada(new Symbol(sym.TAG_TABLE,tagCierraleft,tagCierraright,tagCierra),"Tag Cierra");
+            RESULT = tabla;
+            :}
+
+            | MENOR_QUE tag_for:condicion_for MAYOR_QUE declaraciones_etiquetas:hijos FIN_TAG TAG_FOR:tagCierra MAYOR_QUE
+            {:
+            TablaDeSimbolos tabla = new TablaDeSimbolos("Tag For");
+            tabla.agregarEntrada(condicion_for,"Condicion For");
+            tabla.agregarEntrada(hijos, "Hijos");
+            tabla.agregarEntrada(new Symbol(sym.TAG_FOR,tagCierraleft,tagCierraright,tagCierra),"Tag Cierra");
+            RESULT = tabla;
+            :}
+
+            | MENOR_QUE TAG_TR:tagAbre MAYOR_QUE declaraciones_etiquetas:hijos FIN_TAG TAG_TR:tagCierra MAYOR_QUE
+            {:
+            TablaDeSimbolos tabla = new TablaDeSimbolos("Tag Row");
+            tabla.agregarEntrada(new Symbol(sym.TAG_TR,tagAbreleft,tagAbreright,tagAbre),"Tag Abre");
+            tabla.agregarEntrada(hijos, "Hijos");
+            tabla.agregarEntrada(new Symbol(sym.TAG_TR,tagCierraleft,tagCierraright,tagCierra),"Tag Cierra");
+            RESULT = tabla;
+            :}
+            | MENOR_QUE TAG_TH:tagAbre MAYOR_QUE declaraciones_etiquetas:hijos FIN_TAG TAG_TH:tagCierra MAYOR_QUE
+            {:
+            TablaDeSimbolos tabla = new TablaDeSimbolos("Tag Header Tabla");
+            tabla.agregarEntrada(new Symbol(sym.TAG_TH,tagAbreleft,tagAbreright,tagAbre),"Tag Abre");
+            tabla.agregarEntrada(hijos, "Hijos");
+            tabla.agregarEntrada(new Symbol(sym.TAG_TH,tagCierraleft,tagCierraright,tagCierra),"Tag Cierra");
+            RESULT = tabla;
+            :}
+            | MENOR_QUE TAG_TD:tagAbre MAYOR_QUE declaraciones_etiquetas:hijos FIN_TAG TAG_TD:tagCierra MAYOR_QUE
+            {:
+            TablaDeSimbolos tabla = new TablaDeSimbolos("Tag Data");
+            tabla.agregarEntrada(new Symbol(sym.TAG_TD,tagAbreleft,tagAbreright,tagAbre),"Tag Abre");
+            tabla.agregarEntrada(hijos, "Hijos");
+            tabla.agregarEntrada(new Symbol(sym.TAG_TD,tagCierraleft,tagCierraright,tagCierra),"Tag Cierra");
+            RESULT = tabla;
+            :}
+            | MENOR_QUE TAG_BR:tagBR MAYOR_QUE
+            {:
+            TablaDeSimbolos tabla = new TablaDeSimbolos("Tag BR");
+            tabla.agregarEntrada(new Symbol(sym.TAG_BR,tagBRleft,tagBRright,tagBR),"Tag");
+            RESULT = tabla;
+            :}
 ;
 
-tag_for ::= TAG_FOR ITERADOR DOS_PUNTOS valor_numerico HASTA DOS_PUNTOS valor_numerico PUNTO_COMA
+tag_for ::= TAG_FOR ITERADOR DOS_PUNTOS valor_numerico:desde HASTA DOS_PUNTOS valor_numerico:hasta PUNTO_COMA
+        {:
+        TablaDeSimbolos tabla = new TablaDeSimbolos("Condicion For");
+        tabla.agregarEntrada(desde,"Desde");
+        tabla.agregarEntrada(hasta,"Hasta");
+        RESULT = tabla;
+        :}
 ;
 
-valor_numerico ::= VARIABLE_IDENTIFICADOR
-                | ENTERO
+valor_numerico ::= VARIABLE_IDENTIFICADOR:variable {:RESULT = new Symbol(sym.VARIABLE_IDENTIFICADOR,variableleft,variableright,variable);:}
+                | ENTERO:entero {:RESULT = new Symbol(sym.ENTERO,enteroleft,enteroright,entero);:}
 ;
 
-acceso_variable ::= DOLAR DOLAR PAR_IZQ variable PAR_DER DOLAR DOLAR
+acceso_variable ::= DOBLE_DOLAR PAR_IZQ variable:variable PAR_DER DOBLE_DOLAR
+                {:
+                TablaDeSimbolos tabla = new TablaDeSimbolos("Acceso Variable");
+                tabla.agregarEntrada(variable,"Variable");
+                RESULT = tabla;
+                :}
 ;
 
-variable ::= VARIABLE_IDENTIFICADOR 
-        | result
-        |
+texto_plano ::= PR_INTEGER:texto {:RESULT = texto;:}
+            | PR_STRING:texto {:RESULT = texto;:}
+            | TAG_HTML:texto {:RESULT = texto;:}
+            | TAG_HEADER:texto {:RESULT = texto;:}
+            | TAG_TABLE:texto {:RESULT = texto;:}
+            | TAG_FOR:texto {:RESULT = texto;:}
+            | ITERADOR:texto {:RESULT = texto;:}
+            | HASTA:texto {:RESULT = texto;:}
+            | TAG_TR:texto {:RESULT = texto;:}
+            | TAG_TH:texto {:RESULT = texto;:}
+            | TAG_TD:texto {:RESULT = texto;:}
+            | TAG_BR:texto {:RESULT = texto;:}
+            | RESULT:texto {:RESULT = texto;:}
+            | PUNTO:texto {:RESULT = texto;:}
+            | COMA:texto {:RESULT = texto;:}
+            | DOS_PUNTOS:texto {:RESULT = texto;:}
+            | PUNTO_COMA:texto {:RESULT = texto;:}
+            | LLAVE_IZQ:texto {:RESULT = texto;:}
+            | LLAVE_DER:texto {:RESULT = texto;:}
+            | PAR_IZQ:texto {:RESULT = texto;:}
+            | PAR_DER:texto {:RESULT = texto;:}
+            | CORCH_IZQ:texto {:RESULT = texto;:}
+            | CORCH_DER:texto {:RESULT = texto;:}
+            | MENOS_UNITARIO:texto{:RESULT = texto;:}
+            | CRUZ:texto {:RESULT = texto;:}
+            | ASTERISCO:texto {:RESULT = texto;:}
+            | GUION:texto {:RESULT = texto;:}
+            | BARRA:texto {:RESULT = texto;:}
+            | IGUAL:texto {:RESULT = texto;:}
+            | DOLAR:texto {:RESULT = texto;:}
+            | ENTERO:texto {:RESULT = texto;:}
+            | VARIABLE_IDENTIFICADOR:texto {:RESULT = texto;:}
+            | STRING:texto {:RESULT = texto;:}
+            | TEXTO:texto{:RESULT = texto;:}
 ;
 
-result ::= RESULT PUNTO resultd 
+
+variable ::= VARIABLE_IDENTIFICADOR:variable {:RESULT = new Symbol(sym.VARIABLE_IDENTIFICADOR,variableleft,variableright,variable);:} 
+        | result:result
+        {:RESULT = result;:}
+        | {:RESULT = new TablaDeSimbolos("Variable Vacia");:}
 ;
 
-resultd ::= VARIABLE_IDENTIFICADOR
-        | VARIABLE_IDENTIFICADOR CORCH_IZQ expresion_matematica CORCH_DER resultdd
+result ::= RESULT PUNTO resultd:result 
+        {:RESULT = result;:}
 ;
 
-resultdd ::= PUNTO VARIABLE_IDENTIFICADOR
+resultd ::= VARIABLE_IDENTIFICADOR:variable 
+        {:
+        TablaDeSimbolos tabla = new TablaDeSimbolos("Result");
+        tabla.agregarEntrada(new Symbol(sym.VARIABLE_IDENTIFICADOR,variableleft,variableright,variable),"Identificador");
+        RESULT = tabla;
+        :}
+        | VARIABLE_IDENTIFICADOR:variable CORCH_IZQ expresion_matematica:expresion CORCH_DER resultdd:resto
+        {:
+        TablaDeSimbolos tabla = new TablaDeSimbolos("Result Lista");
+        tabla.agregarEntrada(new Symbol(sym.VARIABLE_IDENTIFICADOR,variableleft,variableright,variable),"Identificador Lista");
+        tabla.agregarEntrada(expresion, "Expresion");
+        tabla.agregarEntrada(resto, "Parametro Objeto");
+        RESULT = tabla;
+        :}
 ;
 
-expresion ::= expresion:exp1 CRUZ expresion:exp2 {:RESULT = exp1.toString()+"+"+exp2.toString();:}  
-            | expresion:exp1 GUION expresion:exp2 {:RESULT = exp1.toString()+"-"+exp2.toString();:}   
-            | expresion:exp1 ASTERISCO expresion:exp2 {:RESULT = exp1.toString()+"*"+exp2.toString();:}   
-            | expresion:exp1 BARRA expresion:exp2 {:RESULT = exp1.toString()+"/"+exp2.toString();:}   
-            | GUION expresion:exp1 {:RESULT = "-"+exp1.toString();:} %prec MENOS_UNITARIO 
-            | PAR_IZQ expresion:exp1 PAR_DER {:RESULT = "("+exp1.toString()+")";:}   
+resultdd ::= PUNTO VARIABLE_IDENTIFICADOR:variable
+            {:
+            TablaDeSimbolos tabla = new TablaDeSimbolos("Parametro Objeto");
+            tabla.agregarEntrada(new Symbol(sym.VARIABLE_IDENTIFICADOR,variableleft,variableright,variable),"Identificador");
+            RESULT = tabla;
+            :}
+            | {:RESULT = new TablaDeSimbolos("Parametro Objeto");:}
+;
 
-            | STRING:cadena {:RESULT = cadena.toString();:} 
-            | ENTERO:numero {:RESULT = numero.toString();:}
-            | VARIABLE_IDENTIFICADOR:nombreVariable {:RESULT = nombreVariable.toString();:}
+expresion ::= expresion:exp1 CRUZ expresion:exp2 
+            {:
+            TablaDeSimbolos tabla = new TablaDeSimbolos("Suma");
+            tabla.agregarEntrada(exp1,((TablaDeSimbolos)tabla).getScope());
+            tabla.agregarEntrada(exp2,((TablaDeSimbolos)tabla).getScope());
+            RESULT = tabla;
+            :}  
+            | expresion:exp1 GUION expresion:exp2 
+            {:
+            TablaDeSimbolos tabla = new TablaDeSimbolos("Resta");
+            tabla.agregarEntrada(exp1,((TablaDeSimbolos)tabla).getScope());
+            tabla.agregarEntrada(exp2,((TablaDeSimbolos)tabla).getScope());
+            RESULT = tabla;
+            :}  
+            | expresion:exp1 ASTERISCO expresion:exp2 
+            {:
+            TablaDeSimbolos tabla = new TablaDeSimbolos("Multiplicacion");
+            tabla.agregarEntrada(exp1,((TablaDeSimbolos)tabla).getScope());
+            tabla.agregarEntrada(exp2,((TablaDeSimbolos)tabla).getScope());
+            RESULT = tabla;
+            :}  
+            | expresion:exp1 BARRA expresion:exp2 
+            {:
+            TablaDeSimbolos tabla = new TablaDeSimbolos("Division");
+            tabla.agregarEntrada(exp1,((TablaDeSimbolos)tabla).getScope());
+            tabla.agregarEntrada(exp2,((TablaDeSimbolos)tabla).getScope());
+            RESULT = tabla;
+            :}  
+            | GUION expresion:exp1 
+            {:
+            TablaDeSimbolos tabla = new TablaDeSimbolos("Menos Unario");
+            tabla.agregarEntrada(exp1,((TablaDeSimbolos)tabla).getScope());
+            RESULT = tabla;
+            :}  
+            | PAR_IZQ expresion:exp1 PAR_DER 
+            {:RESULT = exp1;:}   
+
+            | STRING:cadena 
+            {:
+            TablaDeSimbolos tabla = new TablaDeSimbolos("String");
+            tabla.agregarEntrada(new Symbol(sym.STRING,cadenaleft,cadenaright,cadena),"Cadena");
+            RESULT = tabla;
+            :} 
+            | ENTERO:entero 
+            {:
+            TablaDeSimbolos tabla = new TablaDeSimbolos("Integer");
+            tabla.agregarEntrada(new Symbol(sym.ENTERO,enteroleft,enteroright,entero),"Entero");
+            RESULT = tabla;
+            :} 
+            | VARIABLE_IDENTIFICADOR:variable 
+            {:
+            TablaDeSimbolos tabla = new TablaDeSimbolos("Variable");
+            tabla.agregarEntrada(new Symbol(sym.VARIABLE_IDENTIFICADOR,variableleft,variableright,variable),"Identificador");
+            RESULT = tabla;
+            :} 
+            | result:result
+            {:
+            RESULT = result;
+            :} 
             
             | error expresion:exp 
             {:
             Symbol e = errorStack.pop();
             agregarError(e,"Expresion mal definida");
-            RESULT = exp.toString();
+            RESULT = exp;
             :}
 ;
 
-expresion_matematica ::= expresion:exp1 CRUZ expresion:exp2 {:RESULT = exp1.toString()+"+"+exp2.toString();:}  
-            | expresion:exp1 GUION expresion:exp2 {:RESULT = exp1.toString()+"-"+exp2.toString();:}   
-            | expresion:exp1 ASTERISCO expresion:exp2 {:RESULT = exp1.toString()+"*"+exp2.toString();:}   
-            | expresion:exp1 BARRA expresion:exp2 {:RESULT = exp1.toString()+"/"+exp2.toString();:}   
-            | GUION expresion:exp1 {:RESULT = "-"+exp1.toString();:} %prec MENOS_UNITARIO 
-            | PAR_IZQ expresion:exp1 PAR_DER {:RESULT = "("+exp1.toString()+")";:}   
+expresion_matematica ::= expresion_matematica:exp1 CRUZ expresion_matematica:exp2 
+            {:
+            TablaDeSimbolos tabla = new TablaDeSimbolos("Suma");
+            tabla.agregarEntrada(exp1,((TablaDeSimbolos)tabla).getScope());
+            tabla.agregarEntrada(exp2,((TablaDeSimbolos)tabla).getScope());
+            RESULT = tabla;
+            :}  
+            | expresion_matematica:exp1 GUION expresion_matematica:exp2 
+            {:
+            TablaDeSimbolos tabla = new TablaDeSimbolos("Resta");
+            tabla.agregarEntrada(exp1,((TablaDeSimbolos)tabla).getScope());
+            tabla.agregarEntrada(exp2,((TablaDeSimbolos)tabla).getScope());
+            RESULT = tabla;
+            :}  
+            | expresion_matematica:exp1 ASTERISCO expresion_matematica:exp2 
+            {:
+            TablaDeSimbolos tabla = new TablaDeSimbolos("Multiplicacion");
+            tabla.agregarEntrada(exp1,((TablaDeSimbolos)tabla).getScope());
+            tabla.agregarEntrada(exp2,((TablaDeSimbolos)tabla).getScope());
+            RESULT = tabla;
+            :}  
+            | expresion_matematica:exp1 BARRA expresion_matematica:exp2 
+            {:
+            TablaDeSimbolos tabla = new TablaDeSimbolos("Division");
+            tabla.agregarEntrada(exp1,((TablaDeSimbolos)tabla).getScope());
+            tabla.agregarEntrada(exp2,((TablaDeSimbolos)tabla).getScope());
+            RESULT = tabla;
+            :}  
+            | GUION expresion_matematica:exp1 
+            {:
+            TablaDeSimbolos tabla = new TablaDeSimbolos("Menos Unario");
+            tabla.agregarEntrada(exp1,((TablaDeSimbolos)tabla).getScope());
+            RESULT = tabla;
+            :}  
+            | PAR_IZQ expresion_matematica:exp1 PAR_DER 
+            {:RESULT = exp1;:}   
 
-            | ENTERO:numero {:RESULT = numero.toString();:}
-            | VARIABLE_IDENTIFICADOR:nombreVariable {:RESULT = nombreVariable.toString();:}
+            | ENTERO:entero 
+            {:
+            TablaDeSimbolos tabla = new TablaDeSimbolos("Integer");
+            tabla.agregarEntrada(new Symbol(sym.ENTERO,enteroleft,enteroright,entero),"Entero");
+            RESULT = tabla;
+            :} 
+            | VARIABLE_IDENTIFICADOR:variable 
+            {:
+            TablaDeSimbolos tabla = new TablaDeSimbolos("Varible");
+            tabla.agregarEntrada(new Symbol(sym.VARIABLE_IDENTIFICADOR,variableleft,variableright,variable),"Identificador");
+            RESULT = tabla;
+            :} 
+            | result:result
+            {:
+            RESULT = result;
+            :} 
             
-            | error expresion:exp 
+            | error expresion_matematica:exp 
             {:
             Symbol e = errorStack.pop();
             agregarError(e,"Expresion Matematica mal definida");
-            RESULT = exp.toString();
+            RESULT = exp;
             :}
 ;

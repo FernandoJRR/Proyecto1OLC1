@@ -75,14 +75,15 @@ salto=[\n\r]
     iterador {return symbol(sym.ITERADOR,yytext());}
     hasta {return symbol(sym.HASTA,yytext());}
     tr {return symbol(sym.TAG_TR,yytext());}
-    th {return symbol(sym.TAG_TH,yytext());}
-    td {return symbol(sym.TAG_TD,yytext());}
-    br {return symbol(sym.TAG_BR,yytext());}
+    th {return symbol(sym.TAG_TH, yytext());}
+    td {return symbol(sym.TAG_TD, yytext());}
+    br {return symbol(sym.TAG_BR, yytext());}
 
     //Se declaran simbolos
     
     "." {return symbol(sym.PUNTO, yytext());}
     ":" {return symbol(sym.DOS_PUNTOS, yytext());}
+    "," {return symbol(sym.COMA, yytext());}
     ";" {return symbol(sym.PUNTO_COMA, yytext());}
     "(" {return symbol(sym.PAR_IZQ, yytext());}
     ")" {return symbol(sym.PAR_DER, yytext());}
@@ -95,19 +96,22 @@ salto=[\n\r]
     "/" {return symbol(sym.BARRA, yytext());}
     "=" {return symbol(sym.IGUAL, yytext());}
     
+
     ">" {return symbol(sym.MAYOR_QUE, yytext());}
     "<" {return symbol(sym.MENOR_QUE, yytext());}
+    "</" {return symbol(sym.FIN_TAG, yytext());}
     "$" {return symbol(sym.DOLAR,yytext());}    
+    "$$" {return symbol(sym.DOBLE_DOLAR,yytext());}    
 
     //Se declaran tokens con regex
+    "</".*."/>" {/*Ignorar comentarios*/}
 
     "\"" {yybegin(STRING);}
 
     "-"?{D}+ {return symbol(sym.ENTERO, yytext());}
-
-    "</"[^]"/>" {/*Ignorar comentarios*/}
     
     ({L}|"_")({L}|{D}|"_")* {return symbol(sym.VARIABLE_IDENTIFICADOR, yytext());}
+
     
     //Se ignoraran espacios sueltos
     {espacio}|{salto} {/*Ignorar*/}

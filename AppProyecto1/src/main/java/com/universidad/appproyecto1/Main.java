@@ -21,7 +21,8 @@ public class Main {
         Interfaz interfaz = new Interfaz();
         */
         try {
-            ModelAnalisis.analizaJSON(Files.readString(Paths.get("/home/fernanrod/pruebaOLC1/default/default-Proyecto.json")));
+            //ModelAnalisis.analizaJSON(Files.readString(Paths.get("/home/fernanrod/pruebaOLC1/default/default-Proyecto.json")));
+            ModelAnalisis.analizarDef(Files.readString(Paths.get("/home/fernanrod/pruebaOLC1/default/default-Proyecto.def")));
         } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();

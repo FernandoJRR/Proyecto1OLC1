@@ -8,43 +8,45 @@ package com.universidad.appproyecto1.analisis.analisisDef;
 /** CUP generated class containing symbol constants. */
 public class sym {
   /* terminals */
-  public static final int PAR_DER = 22;
-  public static final int CORCH_IZQ = 23;
-  public static final int ENTERO = 34;
+  public static final int PAR_DER = 23;
+  public static final int CORCH_IZQ = 24;
+  public static final int ENTERO = 36;
   public static final int PR_INTEGER = 2;
-  public static final int DOS_PUNTOS = 17;
-  public static final int ASTERISCO = 27;
+  public static final int DOS_PUNTOS = 18;
+  public static final int ASTERISCO = 28;
   public static final int ITERADOR = 8;
   public static final int HASTA = 9;
   public static final int TAG_HTML = 4;
-  public static final int LLAVE_IZQ = 19;
-  public static final int IGUAL = 30;
+  public static final int DOBLE_DOLAR = 35;
+  public static final int LLAVE_IZQ = 20;
+  public static final int IGUAL = 31;
   public static final int TAG_BR = 13;
-  public static final int CRUZ = 26;
-  public static final int GUION = 28;
+  public static final int CRUZ = 27;
+  public static final int GUION = 29;
   public static final int TAG_TR = 10;
-  public static final int PUNTO_COMA = 18;
+  public static final int PUNTO_COMA = 19;
   public static final int EOF = 0;
   public static final int error = 1;
-  public static final int CORCH_DER = 24;
-  public static final int COMA = 16;
+  public static final int CORCH_DER = 25;
+  public static final int COMA = 17;
   public static final int TAG_TH = 11;
   public static final int TAG_FOR = 7;
   public static final int PR_STRING = 3;
   public static final int TAG_TD = 12;
-  public static final int MAYOR_QUE = 31;
+  public static final int MAYOR_QUE = 32;
   public static final int TAG_TABLE = 6;
-  public static final int PAR_IZQ = 21;
+  public static final int PAR_IZQ = 22;
   public static final int TAG_HEADER = 5;
-  public static final int VARIABLE_IDENTIFICADOR = 35;
-  public static final int BARRA = 29;
-  public static final int LLAVE_DER = 20;
-  public static final int PUNTO = 15;
-  public static final int MENOS_UNITARIO = 25;
-  public static final int STRING = 36;
-  public static final int MENOR_QUE = 32;
-  public static final int TEXTO = 37;
-  public static final int DOLAR = 33;
+  public static final int VARIABLE_IDENTIFICADOR = 37;
+  public static final int BARRA = 30;
+  public static final int LLAVE_DER = 21;
+  public static final int PUNTO = 16;
+  public static final int FIN_TAG = 15;
+  public static final int MENOS_UNITARIO = 26;
+  public static final int STRING = 38;
+  public static final int MENOR_QUE = 33;
+  public static final int TEXTO = 39;
+  public static final int DOLAR = 34;
   public static final int RESULT = 14;
   public static final String[] terminalNames = new String[] {
   "EOF",
@@ -62,6 +64,7 @@ public class sym {
   "TAG_TD",
   "TAG_BR",
   "RESULT",
+  "FIN_TAG",
   "PUNTO",
   "COMA",
   "DOS_PUNTOS",
@@ -81,6 +84,7 @@ public class sym {
   "MAYOR_QUE",
   "MENOR_QUE",
   "DOLAR",
+  "DOBLE_DOLAR",
   "ENTERO",
   "VARIABLE_IDENTIFICADOR",
   "STRING",
