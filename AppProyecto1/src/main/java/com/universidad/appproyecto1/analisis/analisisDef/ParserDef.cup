@@ -108,7 +108,7 @@ declaraciond ::= VARIABLE_IDENTIFICADOR:variable declaraciondd:declaracion
                 :}
                 | asignacion:asignacion
                 {:
-                TablaDeSimbolos tabla = new TablaDeSimbolos("Declaracion Variable");
+                TablaDeSimbolos tabla = new TablaDeSimbolos("Declaracion Valor");
                 tabla.agregarEntrada(asignacion, "Asignacion");
                 RESULT = tabla;
                 :}
@@ -223,10 +223,10 @@ etiqueta ::= MENOR_QUE TAG_HEADER:tagAbre MAYOR_QUE declaraciones_etiquetas:hijo
             :}
 ;
 
-tag_for ::= TAG_FOR ITERADOR DOS_PUNTOS valor_numerico:desde HASTA DOS_PUNTOS valor_numerico:hasta PUNTO_COMA
+tag_for ::= TAG_FOR ITERADOR DOS_PUNTOS VARIABLE_IDENTIFICADOR:desde HASTA DOS_PUNTOS valor_numerico:hasta PUNTO_COMA
         {:
         TablaDeSimbolos tabla = new TablaDeSimbolos("Condicion For");
-        tabla.agregarEntrada(desde,"Desde");
+        tabla.agregarEntrada(new Symbol(sym.VARIABLE_IDENTIFICADOR,desdeleft,desderight,desde),"Iterador");
         tabla.agregarEntrada(hasta,"Hasta");
         RESULT = tabla;
         :}

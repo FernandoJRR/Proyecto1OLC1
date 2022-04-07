@@ -36,8 +36,8 @@ public class ModelAnalisis {
         ArrayList<CompileError> erroresAnalisis = new ArrayList<>();
         output += "Analisis Iniciado\n";
         StringReader stringReader = new StringReader(input);
-        lexer.setErroresEncontrados(erroresAnalisis);
         lexer = new LexerJava(stringReader);
+        lexer.setErroresEncontrados(erroresAnalisis);
         parser = new ParserJava(lexer);
         parser.setErroresEncontrados(erroresAnalisis);
         output += "Iniciando Analisis Lexico/Sintactico\n";

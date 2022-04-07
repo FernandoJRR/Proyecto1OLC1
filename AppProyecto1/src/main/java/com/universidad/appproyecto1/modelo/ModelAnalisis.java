@@ -21,6 +21,7 @@ public class ModelAnalisis {
     static ArrayList<String> comentariosRepetidos;
     static ArrayList<CompileError> erroresJSON;
     static ArrayList<CompileError> erroresDef;
+    static String htmlGenerado;
 
     public static void analizaJSON(String contenidoJSON) throws Exception{
         punteo = 0f;
@@ -41,6 +42,24 @@ public class ModelAnalisis {
         if (erroresJSON.size()==0) {
             ParJSON[] objetosJSON = parser.getObjetosJSON();   
             recorrerListaPares(objetosJSON, 0);
+        }
+
+        if (erroresJSON.size()>0) {
+            ModelEdicion.agregarMensajeConsola("Hay errores en el JSON");
+            for (CompileError error : erroresJSON) {
+                ModelEdicion.agregarMensajeConsola(error.toString());
+            }
+        } else {
+            ModelEdicion.agregarMensajeConsola("Archivo JSON analizado exitosamente");
+            System.out.println("Objetos encontrados en JSON");
+            System.out.println("Clases Repetidas");
+            System.out.println(clasesRepetidas.toString());
+            System.out.println("Metodos Repetidas");
+            System.out.println(metodosRepetidos.toString());
+            System.out.println("Variables Repetidas");
+            System.out.println(variablesRepetidas.toString());
+            System.out.println("Comentarios Repetidas");
+            System.out.println(comentariosRepetidos.toString());
         }
     }
     
@@ -336,10 +355,13 @@ public class ModelAnalisis {
         if (erroresDef.size()==0) {
             System.out.println("Parseo exitoso");
             interpretarDef(parser.getTablaDeSimbolos());
-            System.out.println(TablaDeSimbolos.getHtmlGenerado());
+            htmlGenerado = TablaDeSimbolos.getHtmlGenerado();
+            System.out.println(htmlGenerado);
+            ModelEdicion.ponerReporte(htmlGenerado);
         } else {
+            ModelEdicion.agregarMensajeConsola("Hay errores en el Def");
             for (CompileError error : erroresDef) {
-                System.out.println(error);
+                ModelEdicion.agregarMensajeConsola(error.toString());
             }
         }
     }

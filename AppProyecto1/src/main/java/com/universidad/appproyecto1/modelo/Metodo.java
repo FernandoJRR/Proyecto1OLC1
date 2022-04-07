@@ -20,4 +20,14 @@ public class Metodo {
     public String getOcurrencias() {
         return ocurrencias;
     }
+    
+    public String toString(){
+        String cadena = "";
+        
+        cadena += "Nombre: "+this.nombre;
+        cadena += "Tipo: "+this.tipo;
+        cadena += "Parametros: "+this.ocurrencias;
+        
+        return cadena;
+    }
 }

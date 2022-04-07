@@ -4,6 +4,7 @@ public class ModelEdicion {
     private static javax.swing.JTextArea jsonTextArea;
     private static javax.swing.JTextArea defTextArea;
     private static javax.swing.JTextArea consolaTextArea;
+    private static javax.swing.JEditorPane reportePane;
     
     static String contenidoJSON;
     static String contenidoDef;
@@ -23,6 +24,9 @@ public class ModelEdicion {
     public static void setContenidoDef(String contenidoDef) {
         ModelEdicion.contenidoDef = contenidoDef;
     }
+    public static void setReportePane(javax.swing.JEditorPane reportePane) {
+        ModelEdicion.reportePane = reportePane;
+    }
     
     public static void escribirJSON(String contenido){
         jsonTextArea.setText(contenido);
@@ -37,5 +41,8 @@ public class ModelEdicion {
     }
     public static void agregarMensajeConsola(String mensaje){
         consolaTextArea.setText(consolaTextArea.getText()+mensaje);
+    }
+    public static void ponerReporte(String html) {
+        reportePane.setText(html);
     }
 }

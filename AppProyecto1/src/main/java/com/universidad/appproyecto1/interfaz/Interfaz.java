@@ -14,6 +14,7 @@ import javax.swing.UIManager;
 import com.universidad.appproyecto1.api.*;
 import com.universidad.appproyecto1.exceptions.NoArchivoException;
 import com.universidad.appproyecto1.exceptions.NoDestinoException;
+import com.universidad.appproyecto1.modelo.ModelAnalisis;
 import com.universidad.appproyecto1.modelo.ModelEdicion;
 
 /**
@@ -35,6 +36,7 @@ public class Interfaz extends javax.swing.JFrame {
         ModelEdicion.setConsolaTextArea(consolaTextArea);
         ModelEdicion.setJsonTextArea(jsonTextArea);
         ModelEdicion.setDefTextArea(defTextArea);
+        ModelEdicion.setReportePane(reporteEditorPane);
         
         this.guardarMenuItem.setEnabled(false);
         this.analisisMenu.setEnabled(false);
@@ -76,6 +78,8 @@ public class Interfaz extends javax.swing.JFrame {
         jScrollPane3 = new javax.swing.JScrollPane();
         defTextArea = new javax.swing.JTextArea();
         jPanel4 = new javax.swing.JPanel();
+        jScrollPane4 = new javax.swing.JScrollPane();
+        reporteEditorPane = new javax.swing.JEditorPane();
         consolaPanel = new javax.swing.JPanel();
         textConsolePanel = new javax.swing.JPanel();
         jScrollPane1 = new javax.swing.JScrollPane();
@@ -249,15 +253,24 @@ public class Interfaz extends javax.swing.JFrame {
         //NumeradorLinea defNumerador = new NumeradorLinea(defTextArea, 2);
         //defConsolePanel.add(defNumerador, java.awt.BorderLayout.WEST);
 
+        jScrollPane4.setViewportView(reporteEditorPane);
+        reporteEditorPane.setContentType("text/html");
+
         javax.swing.GroupLayout jPanel4Layout = new javax.swing.GroupLayout(jPanel4);
         jPanel4.setLayout(jPanel4Layout);
         jPanel4Layout.setHorizontalGroup(
             jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 841, Short.MAX_VALUE)
+            .addGroup(jPanel4Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jScrollPane4, javax.swing.GroupLayout.DEFAULT_SIZE, 803, Short.MAX_VALUE)
+                .addContainerGap())
         );
         jPanel4Layout.setVerticalGroup(
             jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 0, Short.MAX_VALUE)
+            .addGroup(jPanel4Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jScrollPane4, javax.swing.GroupLayout.DEFAULT_SIZE, 344, Short.MAX_VALUE)
+                .addContainerGap())
         );
 
         editionTabbedPane.addTab("Reporte", jPanel4);
@@ -312,7 +325,7 @@ public class Interfaz extends javax.swing.JFrame {
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
-                .addComponent(editionTabbedPane, javax.swing.GroupLayout.DEFAULT_SIZE, 397, Short.MAX_VALUE)
+                .addComponent(editionTabbedPane)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(consolaPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
         );
@@ -459,8 +472,16 @@ public class Interfaz extends javax.swing.JFrame {
 }//GEN-LAST:event_abrirMenuItemActionPerformed
 
     private void analizarMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_analizarMenuItemActionPerformed
-        // TODO add your handling code here:
-        
+        try {
+            ModelAnalisis.analizaJSON(jsonTextArea.getText());
+        } catch (Exception e) {
+            ModelEdicion.agregarMensajeConsola("Hay errores en el archivo JSON");
+        }
+        try {
+            ModelAnalisis.analizarDef(defTextArea.getText());
+        } catch (Exception e) {
+            ModelEdicion.agregarMensajeConsola("Hay errores en el archivo Def");
+        }
     }//GEN-LAST:event_analizarMenuItemActionPerformed
     
     private void seleccionarProyecto(int numeroProyecto){
@@ -519,10 +540,12 @@ public class Interfaz extends javax.swing.JFrame {
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JScrollPane jScrollPane3;
+    private javax.swing.JScrollPane jScrollPane4;
     private javax.swing.JPanel jsonConsolePanel;
     public javax.swing.JTextArea jsonTextArea;
     private javax.swing.JPanel mainPanel;
     private javax.swing.JLabel nombreProyectoLabel;
+    private javax.swing.JEditorPane reporteEditorPane;
     private javax.swing.JButton seleccionDirectorioButton1;
     private javax.swing.JButton seleccionDirectorioButton2;
     private javax.swing.JPanel seleccionPanel;

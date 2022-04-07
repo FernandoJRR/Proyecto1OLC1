@@ -17,11 +17,10 @@ import com.universidad.appproyecto1.modelo.ModelAnalisis;
  */
 public class Main {
     public static void main(String[] args) {
-        /*
         Interfaz interfaz = new Interfaz();
-        */
+        /*
         try {
-            //ModelAnalisis.analizaJSON(Files.readString(Paths.get("/home/fernanrod/pruebaOLC1/default/default-Proyecto.json")));
+            ModelAnalisis.analizaJSON(Files.readString(Paths.get("/home/fernanrod/pruebaOLC1/default/default-Proyecto.json")));
             ModelAnalisis.analizarDef(Files.readString(Paths.get("/home/fernanrod/pruebaOLC1/default/default-Proyecto.def")));
         } catch (IOException e) {
             // TODO Auto-generated catch block
@@ -30,5 +29,6 @@ public class Main {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
+        */
     }
 }

@@ -20,4 +20,14 @@ public class Variable {
     public String getOcurrencia() {
         return ocurrencia;
     }
+
+    public String toString(){
+        String cadena = "";
+        
+        cadena += "Nombre: "+this.nombre;
+        cadena += "Tipo: "+this.tipo;
+        cadena += "Ocurrencias: "+this.ocurrencia;
+        
+        return cadena;
+    }
 }
