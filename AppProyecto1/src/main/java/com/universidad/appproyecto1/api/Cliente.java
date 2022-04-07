@@ -1,8 +1,9 @@
 package com.universidad.appproyecto1.api;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
+import java.io.File;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
 
@@ -16,24 +17,30 @@ public class Cliente {
         return socket;
     }
 
-    public static boolean enviarInformacion(String informacion) throws IOException{
-        DataOutputStream dataOutput = new DataOutputStream(socket.getOutputStream());  
-        dataOutput.writeUTF(informacion);  
+    public static String enviarInformacion(File[] informacionPrimerProyecto, File[] informacionSegundoProyecto) throws IOException{
+        File[][] informacionProyectos = new File[][]{informacionPrimerProyecto,informacionSegundoProyecto};
+
+        ObjectOutputStream dataOutput = new ObjectOutputStream(socket.getOutputStream());  
+        dataOutput.writeObject(informacionProyectos);
         dataOutput.flush();  
         return esperarRespuesta();
     }
     
-    public static boolean esperarRespuesta(){
+    public static String esperarRespuesta(){
         try {
             getInstance();
-            DataInputStream dis = new DataInputStream(socket.getInputStream());  
-            String  str=(String)dis.readUTF();  
-            System.out.println("reponse= "+str);  
+            ObjectInputStream dis = new ObjectInputStream(socket.getInputStream());  
+            String[] respuesta = (String[])dis.readObject();
+            ManejadorProyectos.setJsonProyecto(respuesta[0]);
+            System.out.println("reponse= "+respuesta[0]);  
             socket.close();  
-            return true;
+            return respuesta[1];
         } catch (IOException e) {
             e.printStackTrace();
-            return false;
+            return "Error";
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+            return "Error";
         }
     }
 }

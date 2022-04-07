@@ -37,6 +37,7 @@ public class Interfaz extends javax.swing.JFrame {
         this.setVisible(true);
         agregarTexto(">> Iniciando Servidor");
         agregarTexto(">> Esperando Informacion del Cliente");
+        Servidor.setOutputArea(consolaErroresTextArea);
         Servidor.iniciar();
     }
     

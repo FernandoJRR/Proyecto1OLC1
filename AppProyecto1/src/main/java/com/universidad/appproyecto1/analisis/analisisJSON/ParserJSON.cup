@@ -1,0 +1,154 @@
+package com.universidad.appproyecto1.analisis.analisisJSON;
+
+import java_cup.runtime.*;
+import java.util.ArrayList;
+import java.util.Stack;
+import com.universidad.appproyecto1.analisis.ParJSON;
+import com.universidad.appproyecto1.analisis.CompileError;
+
+parser code {:
+        private Symbol s;
+
+        public Symbol getS(){
+                return this.s;
+        }
+        private ParJSON[] objetosJSON;
+
+        public ParJSON[] getObjetosJSON(){
+                return objetosJSON;
+        }
+
+        private ArrayList<CompileError> erroresEncontrados; 
+
+        public ArrayList<CompileError> getErroresEncontrados(){
+                return erroresEncontrados;
+        }
+        public void setErroresEncontrados(ArrayList<CompileError> erroresEncontrados){
+        this.erroresEncontrados = erroresEncontrados;
+        }
+
+        private void agregarError(Symbol symbolError, String mensajeError){
+                erroresEncontrados.add(new CompileError(symbolError, "Sintactico", mensajeError));
+        }
+        
+        private ArrayList<ParJSON> listaParesActual;
+        private ArrayList<Object> listaValoresActual;
+
+        private Stack<Symbol> errorStack = new Stack<>();
+
+        public void syntax_error(Symbol s){
+                this.s = s;
+                errorStack.push(s);
+        }
+
+        public void unrecovered_syntax_error(Symbol s){
+                this.s = s;
+                errorStack.push(s);
+                Symbol e = errorStack.pop();
+                agregarError(e,"Error Irrecuperable");
+        }
+:}
+
+terminal COMA, DOS_PUNTOS, L_CORCHETE, R_CORCHETE, L_LLAVE, R_LLAVE,
+TRUE, FALSE, NULL, NUMERO, STRING
+;
+
+non terminal json, arreglo, objeto, lista_pares, lista_paresd, par, valor, lista_valores, lista_valoresd
+;
+
+start with json;
+
+json::= objeto:objeto {:objetosJSON = (ParJSON[])objeto;:}
+;
+
+arreglo::= L_CORCHETE R_CORCHETE {:RESULT = new Object[0];:} 
+        | L_CORCHETE lista_valores:lista R_CORCHETE {:RESULT = (Object[])lista;:}
+;
+
+objeto ::= L_LLAVE R_LLAVE {:RESULT = new ParJSON[0];:}
+        | L_LLAVE lista_pares:lista R_LLAVE {:RESULT = (ParJSON[])lista;:}
+;
+
+lista_pares ::= par:par lista_paresd:lista 
+                {:
+                listaParesActual.add((ParJSON)par);
+                RESULT =  listaParesActual.toArray(new ParJSON[0]);
+                :}
+
+                | error par:par lista_paresd
+                {:
+                Symbol e = errorStack.pop();
+                agregarError(e,"Se esperaba COMA antes de este token para definir un elemento en la lista");
+                listaParesActual.add((ParJSON)par);
+                :}
+;
+
+lista_paresd ::= COMA par:par lista_paresd:lista 
+                {:
+                listaParesActual.add((ParJSON)par);
+                :}
+                | {: listaParesActual = new ArrayList<>(); :} 
+                
+                | error par:par lista_paresd
+                {:
+                Symbol e = errorStack.pop();
+                agregarError(e,"Se esperaba COMA antes de este token para definir un elemento en la lista");
+                listaParesActual.add((ParJSON)par);
+                :}
+
+                | error lista_paresd
+                {:
+                Symbol e = errorStack.pop();
+                agregarError(e,"Se esperaba PAR antes de este token para definir un elemento en la lista");
+                :}
+;
+
+par::= STRING:llave DOS_PUNTOS valor:valor 
+        {:RESULT = new ParJSON(new Symbol(sym.STRING, llaveleft,llaveright,llave), valor);:}
+
+        | error DOS_PUNTOS valor:valor
+        {:
+        Symbol e = errorStack.pop();
+        agregarError(e,"Se esperaba STRING antes de este token para definir el par");
+        RESULT = new ParJSON("", valor);
+        :}
+;
+
+lista_valores ::= valor:valor lista_valoresd:lista 
+                {:
+                listaValoresActual.add(valor);
+                RESULT = listaValoresActual.toArray();
+                :}
+;
+    
+lista_valoresd ::= COMA valor:valor lista_valoresd:lista 
+                {:
+                listaValoresActual.add(valor);
+                :}
+
+                | {: listaValoresActual = new ArrayList<>(); :}
+                
+                | error valor:valor lista_valoresd:lista
+                {: 
+                Symbol e = errorStack.pop();
+                agregarError(e,"Se esperaba COMA antes de este token");
+                listaValoresActual = new ArrayList<>();
+                listaValoresActual.add(valor);
+                :}
+;
+
+valor ::= STRING:string {: RESULT = new Symbol(sym.STRING, stringleft, stringright, string); :}
+        | NUMERO:numero {: RESULT = new Symbol(sym.NUMERO, numeroleft, numeroright, numero); :}
+        | TRUE:true_bool {: RESULT = new Symbol(sym.TRUE, true_boolleft, true_boolright, true_bool); :} 
+        | FALSE:false_bool {: RESULT = new Symbol(sym.FALSE, false_boolleft, false_boolright, false_bool); :} 
+        | NULL:Null {: RESULT = new Symbol(sym.NULL, Nullleft, Nullright, Null); :}
+        | arreglo:arreglo {: RESULT = arreglo; :}
+        | objeto:objeto {: RESULT = objeto; :}
+        
+        | error 
+        {: 
+        Symbol e = errorStack.pop();
+        agregarError(e,"Valor invalido");
+        RESULT = new Symbol(sym.EOF, 0, 0, ""); 
+        :}
+;

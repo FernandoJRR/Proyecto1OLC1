@@ -7,8 +7,9 @@ import java.util.Stack;
 import java.util.Hashtable;
 import java.util.Set;
 import java.util.Map;
+import java.util.LinkedList;
 
-import com.universidad.servidorproyecto1.analisis.tablasimbolos.TablaDeSimbolos;
+import com.universidad.servidorproyecto1.analisis.TablaDeSimbolos;
 
 parser code
 {:
@@ -20,18 +21,42 @@ parser code
         return tablaDeSimbolos;
     }
     
+    private ArrayList<CompileError> erroresEncontrados = new ArrayList<>();
+    
+    public void setErroresEncontrados(ArrayList<CompileError> erroresEncontrados){
+        this.erroresEncontrados = erroresEncontrados;
+    }
+    public ArrayList<CompileError> getErroresEncontrados(){
+        return erroresEncontrados;
+    }
+    
+    private void agregarError(Symbol symbolError, String mensajeError){
+        erroresEncontrados.add(new CompileError(symbolError, "Sintactico", mensajeError));
+    }
+    
     private Stack<Symbol> errorStack = new Stack<>();
 
     public void syntax_error(Symbol s){
         this.s = s;
         errorStack.push(s);
+        report_expected_token_ids();
     }
+
+     protected void report_expected_token_ids(){
+          List<Integer> ids = expected_token_ids();
+          LinkedList<String> list = new LinkedList<String>();
+          for (Integer expected : ids){
+              list.add(symbl_name_from_id(expected));
+          }
+          System.out.println("instead expected token classes are "+list);
+      }
 
     public void unrecovered_syntax_error(Symbol s){
         this.s = s;
         errorStack.push(s);
         Symbol e = errorStack.pop();
         System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\'");
+        agregarError(e,"Error Irrecuperable");
     }
     
     public Symbol getS(){
@@ -94,7 +119,7 @@ parser code
 terminal COMENTARIO_LINEA, COMENTARIO_MULTILINEA, 
          PR_INT, PR_BOOLEAN, PR_STRING, PR_CHAR, PR_DOUBLE, PR_OBJECT,
          IF, ELSE, FOR, WHILE, DO, SWITCH, BREAK, RETURN, CASE, DOS_PUNTOS, THIS, SUPER, 
-         PUBLIC, PRIVATE, PROTECTED, DEFAULT, FINAL, IMPORT, CLASS,
+         PUBLIC, PRIVATE, PROTECTED, DEFAULT, FINAL, IMPORT, CLASS, NEW,
          PUNTO, COMA, PUNTO_COMA, LLAVE_IZQ, LLAVE_DER, PAR_IZQ, PAR_DER, CORCH_IZQ, CORCH_DER,
          CRUZ, ASTERISCO, GUION, BARRA, MODULO, IGUAL,
          MENOR_QUE, MAYOR_QUE, IGUALDAD, NO_IGUALDAD, MAYOR_IGUAL, MENOR_IGUAL,
@@ -126,7 +151,7 @@ precedence left OR;
 
 start with inicio;
 
-inicio ::= imports definiciones
+inicio ::= imports definiciones {:tablaDeSimbolos.setComentarios(((LexerJava)getScanner()).getComentarios());:}
 ;
 
 imports ::= IMPORT import_ruta imports 
@@ -140,23 +165,56 @@ import_ruta ::= VARIABLE_IDENTIFICADOR import_rutad
 
 import_rutad ::= PUNTO import_rutadd
 
-    | error PUNTO import_rutadd {:Symbol e = errorStack.pop();System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\' se esperaba IDENTIFICADOR");:}
-    | error import_rutadd {:Symbol e = errorStack.pop();System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\' se esperaba PUNTO");:}
+    | error PUNTO import_rutadd 
+    {:
+    Symbol e = errorStack.pop();
+    agregarError(e,"Se esperaba IDENTIFICADOR");
+    System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\' se esperaba IDENTIFICADOR");
+    :}
+
+    | error import_rutadd 
+    {:
+    Symbol e = errorStack.pop();
+    agregarError(e,"Se esperaba PUNTO");
+    System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\' se esperaba PUNTO");
+    :}
 ;
 
 import_rutadd ::= VARIABLE_IDENTIFICADOR PUNTO import_rutadd
     | ASTERISCO PUNTO_COMA {:System.out.println("Importacion realizada");:}
     | VARIABLE_IDENTIFICADOR PUNTO_COMA {:System.out.println("Importacion realizada");:}
     
-    | error VARIABLE_IDENTIFICADOR PUNTO import_rutadd {:Symbol e = errorStack.pop();System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\' se esperaba palabra reservada IMPORT antes de este token");:}
-
-    | error PUNTO import_rutadd {:Symbol e = errorStack.pop();System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\' se esperaba IDENTIFICADOR");:}
-    | error PUNTO_COMA {:Symbol e = errorStack.pop();System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\' se esperaba PUNTO");:}
-    | error {:Symbol e = errorStack.pop();System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\' se esperaba PUNTO_COMA antes de este token");:}
+    | error VARIABLE_IDENTIFICADOR PUNTO import_rutadd 
+    {:
+    Symbol e = errorStack.pop();
+    agregarError(e,"Se esperaba palabra reservada IMPORT antes de este token");
+    System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\' se esperaba palabra reservada IMPORT antes de este token");
+    :}
+    | error PUNTO import_rutadd 
+    {:
+    Symbol e = errorStack.pop();
+    agregarError(e,"Se esperaba IDENTIFICADOR");
+    System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\' se esperaba IDENTIFICADOR");
+    :}
+    | error PUNTO_COMA 
+    {:
+    Symbol e = errorStack.pop();
+    agregarError(e,"Se esperaba PUNTO");
+    System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\' se esperaba PUNTO");
+    :}
+    | error 
+    {:
+    Symbol e = errorStack.pop();
+    agregarError(e,"Se esperaba PUNTO_COMA antes de este token");
+    System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\' se esperaba PUNTO_COMA antes de este token");
+    :}
 ;
 
 definiciones ::= definicion_clase definiciones
-                | {:System.out.println("Definiciones terminadas");:}
+                | 
+                {:
+                System.out.println("Definiciones terminadas");
+                :}
 ;
 
 definicion_clase ::= visibilidad_clase:visibilidad_clase CLASS VARIABLE_IDENTIFICADOR:className cuerpo_clase:sentencias 
@@ -169,26 +227,51 @@ definicion_clase ::= visibilidad_clase:visibilidad_clase CLASS VARIABLE_IDENTIFI
                     tablaDeSimbolos.agregarEntrada((TablaDeSimbolos)tablaClase, "Clase");
                     :}
 
-                    | error VARIABLE_IDENTIFICADOR:className cuerpo_clase {:Symbol e = errorStack.pop();
-                            System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\' se esperaba palabra reservada CLASS");
-                            System.out.println("Clase "+className.toString()+" definida");
-                            :}
+                    | error VARIABLE_IDENTIFICADOR:className cuerpo_clase:sentencias 
+                    {:
+                    Symbol e = errorStack.pop();
+                    agregarError(e,"Se esperaba palabra reservada CLASS");
+                    System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\' se esperaba palabra reservada CLASS");
+                    System.out.println("Clase "+className.toString()+" definida");
 
-                    | error cuerpo_clase {:Symbol e = errorStack.pop();
-                            System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\' se esperaba VARIABLE_IDENTIFICADOR");
-                            System.out.println("Clase definida");
-                            :}
+                    TablaDeSimbolos tablaClase = new TablaDeSimbolos("Clase");
+                    tablaClase.agregarEntrada(new Symbol(sym.DEFAULT,0,0,""), "Visibilidad");
+                    tablaClase.agregarEntrada(new Symbol(sym.VARIABLE_IDENTIFICADOR, classNameleft,classNameright,className), "Nombre");
+                    tablaClase.agregarEntrada(sentencias, "Sentencias");
+                    tablaDeSimbolos.agregarEntrada((TablaDeSimbolos)tablaClase, "Clase");
+                    :}
 
+                    | error cuerpo_clase:sentencias 
+                    {:
+                    Symbol e = errorStack.pop();
+                    agregarError(e,"Se esperaba VARIABLE_IDENTIFICADOR");
+                    System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\' se esperaba VARIABLE_IDENTIFICADOR");
+                    System.out.println("Clase definida");
+
+                    TablaDeSimbolos tablaClase = new TablaDeSimbolos("Clase");
+                    tablaClase.agregarEntrada(new Symbol(sym.DEFAULT,0,0,""), "Visibilidad");
+                    tablaClase.agregarEntrada(new Symbol(sym.VARIABLE_IDENTIFICADOR, 0,0,""), "Nombre");
+                    tablaClase.agregarEntrada(sentencias, "Sentencias");
+                    tablaDeSimbolos.agregarEntrada((TablaDeSimbolos)tablaClase, "Clase");
+                    :}
 ;
 
 cuerpo_clase ::= LLAVE_IZQ sentencias:sentencias LLAVE_DER {:RESULT = sentencias;:}
 
-            | error sentencias LLAVE_DER {:Symbol e = errorStack.pop();
-                    System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\' se esperaba LLAVE_IZQ para iniciar la definicion");
-                    :}
+            | error sentencias:sentencias LLAVE_DER 
+            {:
+            Symbol e = errorStack.pop();
+            agregarError(e,"Se esperaba LLAVE_IZQ para iniciar la definicion");
+            System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\' se esperaba LLAVE_IZQ para iniciar la definicion");
+            RESULT = sentencias;
+            :}
 
-            | error declaracion_clase {:Symbol e = errorStack.pop();
-                System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\' se esperaba LLAVE_DER para terminar la definicion");
+            | error declaracion_clase:declaracion_clase 
+            {:
+            Symbol e = errorStack.pop();
+            agregarError(e,"Se esperaba LLAVE_DER para terminar la definicion");
+            System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\' se esperaba LLAVE_DER para terminar la definicion");
+            RESULT = declaracion_clase;
             :}
 
 ;
@@ -228,6 +311,13 @@ sentencias ::= declaracion:declaracion sentencias:sentencias_var
             TablaDeSimbolos sentencias = new TablaDeSimbolos("Sentencias");
             RESULT = sentencias;
             :}
+            
+            | error 
+            {:
+            Symbol e = errorStack.pop();
+            agregarError(e,"Sentencia mal definida");
+            RESULT = new TablaDeSimbolos("Sentencias");
+            :}
 ;
 
 declaracion ::= visibilidad:visibilidad declaracion_tipo:declaracion_tipo 
@@ -251,12 +341,20 @@ declaracion ::= visibilidad:visibilidad declaracion_tipo:declaracion_tipo
                 ((TablaDeSimbolos)declaracion_constructor).agregarEntradaInicio(visibilidad, "Visibilidad");
                 RESULT = declaracion_constructor;
                 :}
+                
+            | error declaracion_tipo:declaracion_tipo
+            {:
+            Symbol e = errorStack.pop();
+            agregarError(e,"Declaracion mal realizada");
+            RESULT = declaracion_tipo;
+            :}
 ;
 
 declaracion_constructor ::= declaracion_metodo:declaracion_metodo
-                    {:
-                    RESULT = declaracion_metodo;
-                    :}
+                            {:
+                            ((TablaDeSimbolos)declaracion_metodo).agregarEntradaInicio("-","Tipo");
+                            RESULT = declaracion_metodo;
+                            :}
 ;
 
 declaracion_tipo ::= tipo:tipo declaracion_metodo:declaracion_metodo 
@@ -298,6 +396,20 @@ declaracion_tipo_variable ::= FINAL:final_vis tipo:tipo declaracion_variable:dec
                             ((TablaDeSimbolos)declaraciones_variables).agregarEntradaInicio(tipo, "Tipo");
                             RESULT = declaraciones_variables;
                             :}
+                            
+                            | error declaracion_variable:declaraciones_variables
+                            {:
+                            Symbol e = errorStack.pop();
+                            agregarError(e,"Se esperaba TIPO");
+                            RESULT = declaraciones_variables;
+                            :}
+                            
+                            | error
+                            {:
+                            Symbol e = errorStack.pop();
+                            agregarError(e,"Variable mal definida");
+                            RESULT = new TablaDeSimbolos("Declaracion Variable");
+                            :}
 ;
 
 tipo ::= PR_INT:integerType {:RESULT = new Symbol(sym.PR_INT,integerTypeleft,integerTyperight,integerType);:}
@@ -316,23 +428,45 @@ declaracion_metodo ::= VARIABLE_IDENTIFICADOR:methodName declaracion_metodod:met
                                                                         "Identificador");
                         RESULT = metodo;
                         :}
+                        
+                        | error declaracion_metodod:metodo
+                        {:
+                        Symbol e = errorStack.pop();
+                        agregarError(e,"Se esperaba VARIABLE_IDENTIFICADOR");
+                        RESULT = metodo;
+                        :}
 ;
 
 declaracion_metodod ::= PAR_IZQ parametros:parametros PAR_DER cuerpo_metodo:cuerpo_metodo 
-                        {:
-                        metodoActual = "Parametros: "+metodoActual;
+                    {:
+                    metodoActual = "Parametros: "+metodoActual;
 
-                        TablaDeSimbolos tablaMetodo = new TablaDeSimbolos("Declaracion Metodo");
-                        tablaMetodo.agregarEntrada(parametros, "Parametros");
-                        tablaMetodo.agregarEntrada(cuerpo_metodo, "Cuerpo");
-                        RESULT = tablaMetodo;
-                        :}
-
-                    | error parametros PAR_DER cuerpo_metodo {:Symbol e = errorStack.pop();
-                    System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\' se esperaba PAR_IZQ");
+                    TablaDeSimbolos tablaMetodo = new TablaDeSimbolos("Declaracion Metodo");
+                    tablaMetodo.agregarEntrada(parametros, "Parametros");
+                    tablaMetodo.agregarEntrada(cuerpo_metodo, "Cuerpo");
+                    RESULT = tablaMetodo;
                     :}
-                    | error cuerpo_metodo {:Symbol e = errorStack.pop();
-                    System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\' se esperaba PAR_DER");
+
+                    | error parametros:parametros PAR_DER cuerpo_metodo:cuerpo_metodo 
+                    {:
+                    Symbol e = errorStack.pop();
+                    agregarError(e,"Se esperaba PAR_IZQ");
+
+                    TablaDeSimbolos tablaMetodo = new TablaDeSimbolos("Declaracion Metodo");
+                    tablaMetodo.agregarEntrada(parametros, "Parametros");
+                    tablaMetodo.agregarEntrada(cuerpo_metodo, "Cuerpo");
+                    RESULT = tablaMetodo;
+                    :}
+
+                    | error cuerpo_metodo:cuerpo_metodo 
+                    {:
+                    Symbol e = errorStack.pop();
+                    agregarError(e,"Se esperaba PAR_DER");
+
+                    TablaDeSimbolos tablaMetodo = new TablaDeSimbolos("Declaracion Metodo");
+                    tablaMetodo.agregarEntrada(new TablaDeSimbolos("Parametros"), "Parametros");
+                    tablaMetodo.agregarEntrada(cuerpo_metodo, "Cuerpo");
+                    RESULT = tablaMetodo;
                     :}
 
 
@@ -366,13 +500,13 @@ parametros ::= tipo:tipo VARIABLE_IDENTIFICADOR:nombreVariable parametrosd:param
             RESULT = new TablaDeSimbolos("Parametros");
             :}
             
-            | error VARIABLE_IDENTIFICADOR {:Symbol e = errorStack.pop();
-                    System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\', se esperaba TIPO o VARIABLE_IDENTIFICADOR");
-                    :}
-            
-            | error {:Symbol e = errorStack.pop();
-                    System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\', se esperaba VARIABLE_IDENTIFICADOR");
-                    :}
+            | error 
+            {:
+            Symbol e = errorStack.pop();
+            agregarError(e,"Se esperaba VARIABLE_IDENTIFICADOR");
+            System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\', se esperaba VARIABLE_IDENTIFICADOR");
+            RESULT = new TablaDeSimbolos("Parametros");
+            :}
 
 
 ;
@@ -388,10 +522,12 @@ parametrosd ::= COMA parametrosdd:parametros
             RESULT = tablaParametros;
             :}
 
-            | error parametrosd {:Symbol e = errorStack.pop();
-                    System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\', se esperaba COMA");
-                    :}
-
+            | error parametrosd:parametros 
+            {:
+            Symbol e = errorStack.pop();
+            agregarError(e,"Se esperaba COMA");
+            RESULT = parametros;
+            :}
 ;
 
 parametrosdd ::= tipo:tipo VARIABLE_IDENTIFICADOR:nombreVariable parametrosd:parametros 
@@ -416,22 +552,38 @@ parametrosdd ::= tipo:tipo VARIABLE_IDENTIFICADOR:nombreVariable parametrosd:par
                 RESULT = parametros;
                 :}
  
-                | error VARIABLE_IDENTIFICADOR parametrosd {:Symbol e = errorStack.pop();
-                        System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\', se esperaba TIPO o VARIABLE_IDENTIFICADOR");
-                        :}
+                | error VARIABLE_IDENTIFICADOR:nombreVariable parametrosd:parametros 
+                {:
+                Symbol e = errorStack.pop();
+                agregarError(e,"Se esperaba TIPO o VARIABLE_IDENTIFICADOR");
 
-                | error {:Symbol e = errorStack.pop();
-                    System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\', se esperaba TIPO o VARIABLE_IDENTIFICADOR");
+                TablaDeSimbolos tablaParametro = new TablaDeSimbolos("Parametro");
+                tablaParametro.agregarEntrada(new Symbol(sym.VARIABLE_IDENTIFICADOR,nombreVariableleft,nombreVariableright,nombreVariable),"Identificador");
+                ((TablaDeSimbolos)parametros).agregarEntrada(tablaParametro, "Parametro");
+                RESULT = parametros;
+                :}
+                
+                | error 
+                {:
+                Symbol e = errorStack.pop();
+                agregarError(e,"Se esperaba TIPO o VARIABLE_IDENTIFICADOR");
+                RESULT = new TablaDeSimbolos("Parametro");
                 :}
 ;
 
 cuerpo_metodo ::= LLAVE_IZQ sentencias_metodo:sentencias LLAVE_DER
                 {:RESULT = sentencias;:}
+                
+                | error LLAVE_DER
+                {:
+                Symbol e = errorStack.pop();
+                agregarError(e,"Sentencias mal definidas");
+                RESULT = new TablaDeSimbolos("Sentencias Metodo");
+                :}
 ;
 
 sentencias_metodo ::= visibilidad:visibilidad declaracion_tipo:declaracion_tipo sentencias_metodo:sentencias
                     {:
-
                     ((TablaDeSimbolos)declaracion_tipo).agregarEntradaInicio(visibilidad, "Visibilidad");
                     ((TablaDeSimbolos)sentencias).agregarEntradaInicio(declaracion_tipo,((TablaDeSimbolos)declaracion_tipo).getScope());
 
@@ -464,11 +616,18 @@ sentencias_metodo ::= visibilidad:visibilidad declaracion_tipo:declaracion_tipo 
 ;
 
 declaracion_variable ::= declaracion_variabled:declaraciones PUNTO_COMA 
-                        {:RESULT = tablasAuxiliares.pop();:}
+                        {:
+                        TablaDeSimbolos tabla = tablasAuxiliares.pop();
+                        if(tabla==null){RESULT = new TablaDeSimbolos("Variables");}
+                        else {RESULT = tabla;}
+                        :}
 
                         | error 
-                        {:Symbol e = errorStack.pop();
-                            System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\', se esperaba PUNTO_COMA antes de este token");
+                        {:
+                        Symbol e = errorStack.pop();
+                        agregarError(e,"Se esperaba PUNTO_COMA antes de este token");
+                        System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\', se esperaba PUNTO_COMA antes de este token");
+                        RESULT = new TablaDeSimbolos("Variables");
                         :}
 ;
 
@@ -477,17 +636,24 @@ declaracion_variabled ::= VARIABLE_IDENTIFICADOR:nombreVariable declaracion_vari
                         actualVariable = nombreVariable.toString()+actualVariable; 
                         variablesActuales = actualVariable+"\n" + variablesActuales; actualVariable="";
 
-                            TablaDeSimbolos tabla = tablasAuxiliares.pop();
-                            TablaDeSimbolos tablaVarible = new TablaDeSimbolos("Variable");
-                            tablaVarible.agregarEntrada(new Symbol(sym.VARIABLE_IDENTIFICADOR, nombreVariableleft,nombreVariableright,nombreVariable),"Identificador");
+                        TablaDeSimbolos tabla = tablasAuxiliares.pop();
+                        TablaDeSimbolos tablaVarible = new TablaDeSimbolos("Variable");
+                        tablaVarible.agregarEntrada(new Symbol(sym.VARIABLE_IDENTIFICADOR, nombreVariableleft,nombreVariableright,nombreVariable),"Identificador");
 
-                            if(variables==null){tablaVarible.agregarEntrada("null","Valor");}
-                            else{tablaVarible.agregarEntrada(variables,"Valor");}
-                            
-                            tabla.agregarEntrada(tablaVarible,"Variable");
-                            tablasAuxiliares.push(tabla);
-                            
-                            RESULT = tabla;
+                        if(variables==null){tablaVarible.agregarEntrada("null","Valor");}
+                        else{tablaVarible.agregarEntrada(variables,"Valor");}
+                        
+                        tabla.agregarEntrada(tablaVarible,"Variable");
+                        tablasAuxiliares.push(tabla);
+                        
+                        RESULT = tabla;
+                        :}
+                        
+                        | error 
+                        {:
+                        Symbol e = errorStack.pop();
+                        agregarError(e,"Variable mal definida");
+                        RESULT = new TablaDeSimbolos("Variable");
                         :}
 ;
 
@@ -521,12 +687,25 @@ declaracion_variabledd ::= COMA declaracion_variabled
                             RESULT = null;
                         :}
                         
-                        | error COMA declaracion_variabled {:Symbol e = errorStack.pop();
-                            System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\', se esperaba VARIABLE_IDENTIFICADOR o EXPRESION antes de este token");
+                        | error COMA declaracion_variabled 
+                        {:
+                        Symbol e = errorStack.pop();
+                        agregarError(e,"Se esperaba VARIABLE_IDENTIFICADOR o EXPRESION antes de este token");
+                        System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\', se esperaba VARIABLE_IDENTIFICADOR o EXPRESION antes de este token");
                         :}
                         
-                        | error IGUAL expresion COMA declaracion_variabledd {:Symbol e = errorStack.pop();
-                            System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\', se esperaba VARIABLE_IDENTIFICADOR antes de este token");
+                        | error IGUAL expresion COMA declaracion_variabledd 
+                        {:
+                        Symbol e = errorStack.pop();
+                        agregarError(e,"Se esperaba VARIABLE_IDENTIFICADOR");
+                        System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\', se esperaba VARIABLE_IDENTIFICADOR antes de este token");
+                        :}
+                        
+                        | error
+                        {:
+                        Symbol e = errorStack.pop();
+                        agregarError(e,"Variable mal definida");
+                        RESULT = new TablaDeSimbolos("Variables");
                         :}
 ;
 
@@ -570,6 +749,24 @@ llamada_parametrosd ::= COMA expresion:exp llamada_parametrosd:resto
                     TablaDeSimbolos tablaParametros = new TablaDeSimbolos("Parametros");
                     RESULT = tablaParametros;
                     :}
+                    
+                    | error expresion:exp llamada_parametrosd:resto
+                    {:
+                    Symbol e = errorStack.pop();
+                    agregarError(e,"Se esperaba COMA antes de este token");
+
+                    ((TablaDeSimbolos)resto).agregarEntrada(exp,"Parametro");
+                    RESULT = resto;
+                    :}
+                    
+                    | error
+                    {:
+                    Symbol e = errorStack.pop();
+                    agregarError(e,"Parametro mal definido");
+
+                    TablaDeSimbolos tablaParametros = new TablaDeSimbolos("Parametros");
+                    RESULT = tablaParametros;
+                    :}
 ;
 
 expresion ::= expresion:exp1 CRUZ expresion:exp2 {:RESULT = exp1.toString()+"+"+exp2.toString();:}  
@@ -589,9 +786,14 @@ expresion ::= expresion:exp1 CRUZ expresion:exp2 {:RESULT = exp1.toString()+"+"+
             | SUPER PUNTO VARIABLE_IDENTIFICADOR:nombreVariable {:RESULT = nombreVariable.toString();:}
             | incremento:increment {:RESULT = increment.toString();:}
             
-            | error expresion:exp {:Symbol e = errorStack.pop();
-                System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\', expresion mal definida");
-                RESULT = exp.toString();
+            | NEW VARIABLE_IDENTIFICADOR:variable PAR_IZQ expresion:exp PAR_DER {:RESULT = "new "+variable.toString()+"("+exp.toString()+")";:}
+            
+            | error expresion:exp 
+            {:
+            Symbol e = errorStack.pop();
+            agregarError(e,"Expresion mal definida");
+            System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\', expresion mal definida");
+            RESULT = exp.toString();
             :}
 ;
 
@@ -605,6 +807,21 @@ incremento ::= llamada_metodo:llamada INCREMENT {:RESULT = llamada.toString()+"+
             | VARIABLE_IDENTIFICADOR:nombreVariable DECREMENT {:RESULT = nombreVariable.toString()+"--";:}
             | THIS PUNTO VARIABLE_IDENTIFICADOR:nombreVariable DECREMENT {:RESULT = nombreVariable.toString()+"--";:}
             | SUPER PUNTO VARIABLE_IDENTIFICADOR:nombreVariable DECREMENT {:RESULT = nombreVariable.toString()+"--";:}
+            
+            | error INCREMENT
+            {:
+            Symbol e = errorStack.pop();
+            agregarError(e,"INCREMENT mal definido");
+
+            RESULT = "";
+            :}
+            | error DECREMENT
+            {:
+            Symbol e = errorStack.pop();
+            agregarError(e,"DECREMENT mal definido");
+
+            RESULT = "";
+            :}
 ;
 
 statements ::= statement:statement statements:statements
@@ -615,6 +832,15 @@ statements ::= statement:statement statements:statements
 
             | 
             {:
+            TablaDeSimbolos tablaStatements = new TablaDeSimbolos("Statements");
+            RESULT = tablaStatements;
+            :}
+            
+            | error 
+            {:
+            Symbol e = errorStack.pop();
+            agregarError(e,"Statement mal definido");
+
             TablaDeSimbolos tablaStatements = new TablaDeSimbolos("Statements");
             RESULT = tablaStatements;
             :}
@@ -660,10 +886,12 @@ statement_condicional ::= IF statement_condicion:condicion cuerpo_statement:cuer
                         RESULT = tablaCondicional;
                         :}
                         
-                        | error statement_condicion cuerpo_statement statement_condicionald {:Symbol e = errorStack.pop();
-                            System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\', se esperaba palabra reservada IF o WHILE");
+                        | error statement_condicion cuerpo_statement statement_condicionald 
+                        {:
+                        Symbol e = errorStack.pop();
+                        agregarError(e,"Se esperaba palabra reservada IF o WHILE");
+                        System.out.println("Error en: linea "+e.left+" y columna "+e.right+" con token \'"+valueToken(e)+"\', se esperaba palabra reservada IF o WHILE");
                         :}
-
 ;
 
 statement_condicionald ::= statement_else:else_stmt
@@ -689,6 +917,16 @@ statement_switch ::= SWITCH PAR_IZQ expresion:exp PAR_DER cuerpo_switch:cuerpo
                     tablaSwitch.agregarEntrada(cuerpo, "Cuerpo");
                     
                     RESULT = tablaSwitch;
+                    :}
+                    
+                    | error PAR_IZQ expresion:exp PAR_DER cuerpo_switch:cuerpo
+                    {:
+                    Symbol e = errorStack.pop();
+                    agregarError(e,"Se esperaba palabra reservada SWITCH");
+
+                    TablaDeSimbolos tablaSwitch = new TablaDeSimbolos("Switch Statement");
+                    tablaSwitch.agregarEntrada(exp, "Expresion");
+                    tablaSwitch.agregarEntrada(cuerpo, "Cuerpo");
                     :}
 ;
 
@@ -719,6 +957,15 @@ cuerpo_statement ::= LLAVE_IZQ statements:statements LLAVE_DER
 
 cuerpo_switch ::= LLAVE_IZQ casos_switch:casos LLAVE_DER
                 {:RESULT = casos;:}
+
+                | error
+                {:
+                Symbol e = errorStack.pop();
+                agregarError(e,"Cuerpo de SWITCH mal definido");
+
+                TablaDeSimbolos tablaCasos = new TablaDeSimbolos("Casos");
+                RESULT = tablaCasos;
+                :}
 ;
 
 casos_switch ::= CASE expresion:exp DOS_PUNTOS statements:statements casos_switch:resto_casos
@@ -758,11 +1005,56 @@ statement_do_while ::= DO cuerpo_statement:cuerpo statement_do_whiled:condicion_
                     tablaDo.agregarEntrada(condicion_while, "Condicion While");
                     RESULT = tablaDo;
                     :}
+                    
+                    | error cuerpo_statement:cuerpo statement_do_whiled:condicion_while
+                    {:
+                    Symbol e = errorStack.pop();
+                    agregarError(e,"Se esperaba palabra reservada DO");
+
+                    TablaDeSimbolos tablaDo = new TablaDeSimbolos("Do While");
+                    tablaDo.agregarEntrada(cuerpo, "Cuerpo");
+                    tablaDo.agregarEntrada(condicion_while, "Condicion While");
+                    RESULT = tablaDo;
+                    :}
+
+                    | error statement_do_whiled:condicion_while
+                    {:
+                    Symbol e = errorStack.pop();
+                    agregarError(e,"Se esperaba CUERPO del statement");
+
+                    TablaDeSimbolos tablaDo = new TablaDeSimbolos("Do While");
+                    tablaDo.agregarEntrada(condicion_while, "Condicion While");
+                    RESULT = tablaDo;
+                    :}
 ;
 
 statement_do_whiled ::= WHILE statement_condicion:condicion PUNTO_COMA
                     {:
                     RESULT = condicion;
+                    :}
+                    
+                    | error statement_condicion:condicion PUNTO_COMA
+                    {:
+                    Symbol e = errorStack.pop();
+                    agregarError(e,"Se esperaba palabra reservada WHILE");
+
+                    RESULT = condicion;
+                    :}
+                    
+                    | error PUNTO_COMA
+                    {:
+                    Symbol e = errorStack.pop();
+                    agregarError(e,"Se esperaba CONDICION");
+
+                    RESULT = "";
+                    :}
+
+                    | error 
+                    {:
+                    Symbol e = errorStack.pop();
+                    agregarError(e,"Se esperaba PUNTO_COMA");
+
+                    RESULT = "";
                     :}
 ;
 
@@ -777,6 +1069,7 @@ expresion_booleana ::= expresion:exp1 MAYOR_QUE expresion:exp2 {:RESULT = exp1.t
                     | expresion_booleana:exp1 OR expresion_booleana:exp2 {:RESULT = exp1.toString()+"||"+exp2.toString();:}  
                     | expresion_booleana:exp1 AND expresion_booleana:exp2 {:RESULT = exp1.toString()+"&&"+exp2.toString();:}  
                     | PAR_IZQ expresion_booleana:exp PAR_DER {:RESULT = "("+exp.toString()+")";:}  
+
 ;
 
 asignacion ::= VARIABLE_IDENTIFICADOR:nombreVariable asignaciond:asignacion 
@@ -805,7 +1098,27 @@ asignacion ::= VARIABLE_IDENTIFICADOR:nombreVariable asignaciond:asignacion
                 tablaAsignacion.agregarEntrada(asignacion,"Valor");
                 RESULT = tablaAsignacion;
                 :}
+                
+                | error PUNTO VARIABLE_IDENTIFICADOR:nombreVariable asignaciond:asignacion
+                {:
+                Symbol e = errorStack.pop();
+                agregarError(e,"Se esperaba palabra reservada THIS o SUPER");
+                TablaDeSimbolos tablaAsignacion = new TablaDeSimbolos("Asignacion");
+                tablaAsignacion.agregarEntrada(new Symbol(sym.VARIABLE_IDENTIFICADOR, nombreVariableleft, nombreVariableright,nombreVariable),"Identificador");
+                tablaAsignacion.agregarEntrada(asignacion,"Valor");
+                RESULT = tablaAsignacion;
+                :}
 
+                | error VARIABLE_IDENTIFICADOR:nombreVariable asignaciond:asignacion
+                {:
+                Symbol e = errorStack.pop();
+                agregarError(e,"Asignacion mal realizada");
+
+                TablaDeSimbolos tablaAsignacion = new TablaDeSimbolos("Asignacion");
+                tablaAsignacion.agregarEntrada(new Symbol(sym.VARIABLE_IDENTIFICADOR, nombreVariableleft, nombreVariableright,nombreVariable),"Identificador");
+                tablaAsignacion.agregarEntrada(asignacion,"Valor");
+                RESULT = tablaAsignacion;
+                :}
 ;
 
 asignaciond ::= IGUAL expresion:exp PUNTO_COMA

@@ -8,7 +8,7 @@ import java.nio.file.Paths;
 
 import com.universidad.servidorproyecto1.analisis.LexerJava;
 import com.universidad.servidorproyecto1.analisis.ParserJava;
-import com.universidad.servidorproyecto1.analisis.tablasimbolos.TablaDeSimbolos;
+import com.universidad.servidorproyecto1.analisis.TablaDeSimbolos;
 import com.universidad.servidorproyecto1.interfaz.Interfaz;
 
 import java_cup.runtime.Symbol;
@@ -24,18 +24,18 @@ import java_cup.runtime.Symbol;
  */
 public class Main {
     public static void main(String[] args) {
-        //Interfaz interfaz = new Interfaz();
+        Interfaz interfaz = new Interfaz();
+
+        /*       
         int numero = 0;
         try {
             String contenido = Files.readString(Paths.get("/home/fernanrod/prueba.java"));
             LexerJava lexer = new LexerJava(new StringReader(contenido));
-            /*
             while (!lexer.yyatEOF()) {
                 Symbol simbolo = lexer.next_token();
                 System.out.println(simbolo.sym);
                 System.out.println(simbolo.value);
             }
-            */
             ParserJava parser = new ParserJava(lexer);
             parser.parse();
             System.out.println("Parsing terminado");
@@ -53,5 +53,6 @@ public class Main {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        */
     }
 }

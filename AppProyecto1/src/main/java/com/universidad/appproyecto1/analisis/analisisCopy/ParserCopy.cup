@@ -1,0 +1,103 @@
+package com.universidad.appproyecto1.analisis.analisisCopy;
+
+import java_cup.runtime.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Stack;
+import java.util.Hashtable;
+import java.util.Set;
+import java.util.Map;
+import java.util.LinkedList;
+import com.universidad.appproyecto1.analisis.CompileError;
+
+parser code
+{:
+    private Symbol s;
+    
+    private ArrayList<Symbol[]> campos = new ArrayList<>();
+    
+    private void agregarCampo(Symbol campo, Symbol informacion){
+        campos.add(new Symbol[]{campo,informacion});
+    }
+    
+    public ArrayList<Symbol[]> getCampos(){
+        return campos;
+    }
+    
+    private ArrayList<CompileError> erroresEncontrados; 
+    
+    public ArrayList<CompileError> getErroresEncontrados(){
+        return erroresEncontrados;
+    }
+    public void setErroresEncontrados(ArrayList<CompileError> erroresEncontrados){
+        this.erroresEncontrados = erroresEncontrados;
+    }
+    
+    private void agregarError(Symbol symbolError, String mensajeError){
+        erroresEncontrados.add(new CompileError(symbolError, "Sintactico", mensajeError));
+    }
+    
+    private Stack<Symbol> errorStack = new Stack<>();
+
+    public void syntax_error(Symbol s){
+        this.s = s;
+        errorStack.push(s);
+    }
+
+    public void unrecovered_syntax_error(Symbol s){
+        this.s = s;
+        errorStack.push(s);
+        Symbol e = errorStack.pop();
+        agregarError(e,"Error Irrecuperable");
+    }
+    
+    public Symbol getS(){
+        return this.s;
+    }
+
+:};
+
+terminal NOMBRE_PROYECTO, DIRECTORIO_JSON, DIRECTORIO_DEF, STRING, DOS_PUNTOS, COMA 
+;
+
+non terminal inicio, declaraciones_campos, campo, informacion_campo
+;
+
+start with inicio;
+
+inicio ::= campo declaraciones_campos
+        |
+        
+        | error
+;
+
+declaraciones_campos ::= COMA campo declaraciones_campos
+                        |
+                        
+                        | error campo declaraciones_campos
+                        | error declaraciones_campos
+;
+
+campo ::= NOMBRE_PROYECTO:campo informacion_campo:informacion 
+        {:Symbol campoSymbol = new Symbol(sym.NOMBRE_PROYECTO,campoleft,camporight,campo);
+        agregarCampo(campoSymbol,(Symbol)informacion);:}
+
+        | DIRECTORIO_DEF:campo informacion_campo:informacion 
+        {:Symbol campoSymbol = new Symbol(sym.NOMBRE_PROYECTO,campoleft,camporight,campo);
+        agregarCampo(campoSymbol,(Symbol)informacion);:}
+
+        | DIRECTORIO_JSON:campo informacion_campo:informacion 
+        {:Symbol campoSymbol = new Symbol(sym.NOMBRE_PROYECTO,campoleft,camporight,campo);
+        agregarCampo(campoSymbol,(Symbol)informacion);:}
+        
+        | error informacion_campo:informacion 
+        {:
+        Symbol e = errorStack.pop();
+        agregarCampo(e,(Symbol)informacion);
+        :}
+;
+
+informacion_campo ::= DOS_PUNTOS STRING:informacion {:RESULT = new Symbol(sym.STRING,informacionleft,informacionright,informacion);:}
+
+                    | error STRING:informacion {:RESULT = new Symbol(sym.STRING,informacionleft,informacionright,informacion);:}
+;

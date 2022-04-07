@@ -1,0 +1,166 @@
+package com.universidad.appproyecto1.analisis.analisisDef;
+
+import java_cup.runtime.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Stack;
+import java.util.Hashtable;
+import java.util.Set;
+import java.util.Map;
+import java.util.LinkedList;
+import com.universidad.appproyecto1.analisis.CompileError;
+
+parser code
+{:
+    private Symbol s;
+    
+    private ArrayList<CompileError> erroresEncontrados; 
+    
+    public ArrayList<CompileError> getErroresEncontrados(){
+        return erroresEncontrados;
+    }
+    public void setErroresEncontrados(ArrayList<CompileError> erroresEncontrados){
+        this.erroresEncontrados = erroresEncontrados;
+    }
+    
+    private void agregarError(Symbol symbolError, String mensajeError){
+        erroresEncontrados.add(new CompileError(symbolError, "Sintactico", mensajeError));
+    }
+    
+    private Stack<Symbol> errorStack = new Stack<>();
+
+    public void syntax_error(Symbol s){
+        this.s = s;
+        errorStack.push(s);
+    }
+
+    public void unrecovered_syntax_error(Symbol s){
+        this.s = s;
+        errorStack.push(s);
+        Symbol e = errorStack.pop();
+        agregarError(e,"Error Irrecuperable");
+    }
+    
+    public Symbol getS(){
+        return this.s;
+    }
+
+:};
+
+terminal PR_INTEGER, PR_STRING, TAG_HTML, TAG_HEADER, TAG_TABLE, TAG_FOR, ITERADOR, HASTA, TAG_TR, TAG_TH, TAG_TD, TAG_BR, RESULT,
+        PUNTO,COMA,DOS_PUNTOS,PUNTO_COMA,LLAVE_IZQ,LLAVE_DER,PAR_IZQ,PAR_DER,CORCH_IZQ,CORCH_DER, MENOS_UNITARIO,
+        CRUZ,ASTERISCO,GUION,BARRA,IGUAL,MAYOR_QUE,MENOR_QUE,DOLAR,ENTERO,VARIABLE_IDENTIFICADOR, STRING, TEXTO
+;
+
+non terminal inicio, declaracion_variables, declaracion_variable, declaracion_html, declaraciones_etiquetas, etiqueta,
+            tag_for, acceso_variable, variable, texto_plano,
+            declaraciond, asignacion, result, resultd, resultdd, expresion, expresion_matematica, valor_numerico
+;
+
+precedence left CRUZ, GUION;
+precedence left ASTERISCO, BARRA; 
+precedence left MENOS_UNITARIO;
+
+start with inicio;
+
+inicio ::= declaracion_variables declaracion_html
+;
+
+declaracion_variables ::= declaracion_variable declaracion_variables
+                        | asignacion declaracion_variables
+;
+
+declaracion_variable ::= PR_INTEGER declaraciond
+                        | PR_STRING declaraciond
+;
+
+declaraciond ::= VARIABLE_IDENTIFICADOR PUNTO_COMA
+                | asignacion
+;
+
+asignacion ::= VARIABLE_IDENTIFICADOR IGUAL expresion PUNTO_COMA
+;
+
+declaracion_html ::= MENOR_QUE TAG_HTML MAYOR_QUE declaraciones_etiquetas MENOR_QUE BARRA TAG_HTML MAYOR_QUE
+                    |
+;
+
+declaraciones_etiquetas ::= etiqueta
+                        | acceso_variable
+                        | texto_plano
+;
+
+texto_plano ::= TEXTO //FALTA DEFINIR MEJOR ESTO
+;
+
+etiqueta ::= MENOR_QUE TAG_HTML MAYOR_QUE declaraciones_etiquetas MENOR_QUE BARRA TAG_HTML MAYOR_QUE
+            | MENOR_QUE TAG_HEADER MAYOR_QUE declaraciones_etiquetas MENOR_QUE BARRA TAG_HEADER MAYOR_QUE
+            | MENOR_QUE TAG_TABLE MAYOR_QUE declaraciones_etiquetas MENOR_QUE BARRA TAG_TABLE MAYOR_QUE
+            | MENOR_QUE tag_for MAYOR_QUE declaraciones_etiquetas MENOR_QUE BARRA TAG_FOR MAYOR_QUE
+            | MENOR_QUE TAG_TR MAYOR_QUE declaraciones_etiquetas MENOR_QUE BARRA TAG_TR MAYOR_QUE
+            | MENOR_QUE TAG_TH MAYOR_QUE declaraciones_etiquetas MENOR_QUE BARRA TAG_TH MAYOR_QUE
+            | MENOR_QUE TAG_TD MAYOR_QUE declaraciones_etiquetas MENOR_QUE BARRA TAG_TD MAYOR_QUE
+            | MENOR_QUE TAG_BR MAYOR_QUE declaraciones_etiquetas 
+;
+
+tag_for ::= TAG_FOR ITERADOR DOS_PUNTOS valor_numerico HASTA DOS_PUNTOS valor_numerico PUNTO_COMA
+;
+
+valor_numerico ::= VARIABLE_IDENTIFICADOR
+                | ENTERO
+;
+
+acceso_variable ::= DOLAR DOLAR PAR_IZQ variable PAR_DER DOLAR DOLAR
+;
+
+variable ::= VARIABLE_IDENTIFICADOR 
+        | result
+        |
+;
+
+result ::= RESULT PUNTO resultd 
+;
+
+resultd ::= VARIABLE_IDENTIFICADOR
+        | VARIABLE_IDENTIFICADOR CORCH_IZQ expresion_matematica CORCH_DER resultdd
+;
+
+resultdd ::= PUNTO VARIABLE_IDENTIFICADOR
+;
+
+expresion ::= expresion:exp1 CRUZ expresion:exp2 {:RESULT = exp1.toString()+"+"+exp2.toString();:}  
+            | expresion:exp1 GUION expresion:exp2 {:RESULT = exp1.toString()+"-"+exp2.toString();:}   
+            | expresion:exp1 ASTERISCO expresion:exp2 {:RESULT = exp1.toString()+"*"+exp2.toString();:}   
+            | expresion:exp1 BARRA expresion:exp2 {:RESULT = exp1.toString()+"/"+exp2.toString();:}   
+            | GUION expresion:exp1 {:RESULT = "-"+exp1.toString();:} %prec MENOS_UNITARIO 
+            | PAR_IZQ expresion:exp1 PAR_DER {:RESULT = "("+exp1.toString()+")";:}   
+
+            | STRING:cadena {:RESULT = cadena.toString();:} 
+            | ENTERO:numero {:RESULT = numero.toString();:}
+            | VARIABLE_IDENTIFICADOR:nombreVariable {:RESULT = nombreVariable.toString();:}
+            
+            | error expresion:exp 
+            {:
+            Symbol e = errorStack.pop();
+            agregarError(e,"Expresion mal definida");
+            RESULT = exp.toString();
+            :}
+;
+
+expresion_matematica ::= expresion:exp1 CRUZ expresion:exp2 {:RESULT = exp1.toString()+"+"+exp2.toString();:}  
+            | expresion:exp1 GUION expresion:exp2 {:RESULT = exp1.toString()+"-"+exp2.toString();:}   
+            | expresion:exp1 ASTERISCO expresion:exp2 {:RESULT = exp1.toString()+"*"+exp2.toString();:}   
+            | expresion:exp1 BARRA expresion:exp2 {:RESULT = exp1.toString()+"/"+exp2.toString();:}   
+            | GUION expresion:exp1 {:RESULT = "-"+exp1.toString();:} %prec MENOS_UNITARIO 
+            | PAR_IZQ expresion:exp1 PAR_DER {:RESULT = "("+exp1.toString()+")";:}   
+
+            | ENTERO:numero {:RESULT = numero.toString();:}
+            | VARIABLE_IDENTIFICADOR:nombreVariable {:RESULT = nombreVariable.toString();:}
+            
+            | error expresion:exp 
+            {:
+            Symbol e = errorStack.pop();
+            agregarError(e,"Expresion Matematica mal definida");
+            RESULT = exp.toString();
+            :}
+;

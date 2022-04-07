@@ -34,6 +34,10 @@ salto=[\n\r]
     private void resetBuffer(){
         buffer.delete(0, buffer.length());
     }
+
+    public void setErroresEncontrados(ArrayList<CompileError> erroresEncontrados){
+        this.erroresEncontrados = erroresEncontrados;
+    }
     
     private HashMap<String, Integer> comentarios = new HashMap<>();
     
@@ -58,6 +62,16 @@ salto=[\n\r]
                 System.out.println(comentario+" "+comentarios.get(comentario));
             }
         }
+    }
+
+    private ArrayList<CompileError> erroresEncontrados = new ArrayList<>();
+    
+    public ArrayList<CompileError> getErroresEncontrados(){
+        return erroresEncontrados;
+    }
+
+    private void agregarError(Symbol symbolError, String mensajeError){
+        erroresEncontrados.add(new CompileError(symbolError, "Lexico", mensajeError));
     }
 %}
 
@@ -94,6 +108,8 @@ salto=[\n\r]
     class {return symbol(sym.CLASS, yytext());}
     this {return symbol(sym.THIS, yytext());}
     super {return symbol(sym.SUPER, yytext());}
+    
+    new {return symbol(sym.NEW, yytext());}
     
     case {return symbol(sym.CASE, yytext());}
     break {return symbol(sym.BREAK, yytext());}
@@ -151,13 +167,13 @@ salto=[\n\r]
 
     //Se ignoraran espacios sueltos
     {espacio}|{salto} {/*Ignorar*/}
-    [^] {System.out.println("Non defined character at line:"+(yyline+1)+", column:"+(yycolumn+1)+" "+buffer.toString()); buffer.delete(0, buffer.length());}
+    [^] { agregarError(symbol(sym.EOF, yytext()), "Caracter no definido"); buffer.delete(0, buffer.length());}
 }
 
 <STRING> {
     ({L}|{D}|{espacio}) {buffer.append(yytext());}
     "\"" {String lexema = buffer.toString();resetBuffer();yybegin(YYINITIAL);return symbol(sym.STRING, lexema);}
-    {salto}|[^] {System.out.println("Incomplete String at line:"+(yyline+1)+", column:"+(yycolumn+1)+" "+buffer.toString()); buffer.delete(0, buffer.length()); yybegin(YYINITIAL);}
+    {salto}|[^] { agregarError(symbol(sym.STRING, buffer.toString()),"STRING incompleto"); buffer.delete(0, buffer.length()); yybegin(YYINITIAL);}
 }
 
 <COMENTARIO_LINEA> {

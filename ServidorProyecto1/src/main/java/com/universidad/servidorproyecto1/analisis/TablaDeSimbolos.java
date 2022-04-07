@@ -1,4 +1,4 @@
-package com.universidad.servidorproyecto1.analisis.tablasimbolos;
+package com.universidad.servidorproyecto1.analisis;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -13,14 +13,39 @@ import java_cup.runtime.Symbol;
 public class TablaDeSimbolos {
     private String scope;
     private LinkedHashMap<Object, String> simbolos;
+    
+    private HashMap<String,Integer> comentarios;
+
+    public HashMap<String, Integer> getComentarios() {
+        return comentarios;
+    }
+    public void setComentarios(HashMap<String, Integer> comentarios) {
+        this.comentarios = comentarios;
+    }
+    
+    //Hashmap que guarda las clases que se repiten y la cantidad de veces que se repiten
     private static HashMap<String, Integer> clases;
-    private static HashMap<String, Integer> metodos;
-    private static HashMap<String, Integer> variables;
+    //Hashmap que guarda el metodo que se repite con la cantidad de veces que se repite y la cantidad de parametros que tiene
+    private static HashMap<String, int[]> metodos;
+
+    //Hashmap que guarda la variable que se repite y donde se repite
+    private static HashMap<String, ArrayList<String>> variables;
+
     private static String claseActual = "";
     private static String metodoActual = "";
     private static ArrayList<String> metodosClase = new ArrayList<>();
     private static ArrayList<String> parametrosMetodo = new ArrayList<>();
     private static String tipoVariableActual;
+    
+    public static HashMap<String, Integer> getClases() {
+        return clases;
+    }
+    public static HashMap<String, int[]> getMetodos() {
+        return metodos;
+    }
+    public static HashMap<String, ArrayList<String>> getVariables() {
+        return variables;
+    }
 
     public TablaDeSimbolos(String scope){
         this.scope = scope;
@@ -79,15 +104,22 @@ public class TablaDeSimbolos {
             }
         }
         if (getScope().equals("Declaracion Metodo")) {
+            String metodo = "";
             for (Object parte : simbolos.keySet()) {
                 switch (simbolos.get(parte)) {
                     case "Tipo":
-                        metodoActual += ((Symbol)parte).value.toString();
-                        metodosClase.add(((Symbol)parte).value.toString());
+                        if (parte instanceof String) {
+                            metodoActual += parte;
+                            metodo += parte;
+                        } else {
+                            metodoActual += ((Symbol)parte).value.toString();
+                            metodo += ((Symbol)parte).value.toString();
+                        }
                         break;
                     case "Identificador":
                         metodoActual += " "+((Symbol)parte).value.toString();
-                        metodosClase.add(((Symbol)parte).value.toString());
+                        metodo += " "+((Symbol)parte).value.toString();
+                        metodosClase.add(metodo);
                         break;
                     default:
                         break;
@@ -109,11 +141,15 @@ public class TablaDeSimbolos {
             for (Object parte : simbolos.keySet()) {
                 switch (simbolos.get(parte)) {
                     case "Identificador":
-                        String variable = tipoVariableActual+" "+((Symbol)parte).value.toString();
+                        String variable = ((Symbol)parte).value.toString()+" "+tipoVariableActual;
+                        String encontradoEn = metodoActual.equals("")? "Clase "+claseActual : "Metodo "+metodoActual;
+
                         if (variables.get(variable)!=null) {
-                            variables.put(variable, variables.get(variable)+1);
+                            variables.get(variable).add(encontradoEn);
                         } else {
-                            variables.put(variable, 1);
+                            ArrayList<String> ocurrencia = new ArrayList<>();
+                            ocurrencia.add(encontradoEn);
+                            variables.put(variable, ocurrencia);
                         }
                         break;
                     default:
@@ -122,13 +158,13 @@ public class TablaDeSimbolos {
             }
         }
         for (Object simbolo : simbolos.keySet()){
-            System.out.println(imprimirIndentacion(nivelActual)+simbolos.get(simbolo).toString());
+            //System.out.println(imprimirIndentacion(nivelActual)+simbolos.get(simbolo).toString());
             if (simbolo instanceof TablaDeSimbolos) {
                 ((TablaDeSimbolos)simbolo).recorrerTabla(nivelActual+1);
             } else if (simbolo instanceof Symbol) {
-                System.out.println(imprimirIndentacion(nivelActual)+((Symbol)simbolo).value);
+                //System.out.println(imprimirIndentacion(nivelActual)+((Symbol)simbolo).value);
             } else if (simbolo instanceof String) {
-                System.out.println(imprimirIndentacion(nivelActual)+simbolo.toString());
+                //System.out.println(imprimirIndentacion(nivelActual)+simbolo.toString());
             }
             
         }
@@ -152,6 +188,7 @@ public class TablaDeSimbolos {
         }
         if (getScope().equals("Declaracion Metodo")) {
             String parametros = "";
+            int cantidadParametros = parametrosMetodo.size();
             Collections.sort(parametrosMetodo);
             for (String parametro : parametrosMetodo) {
                 parametros += parametro+" ";
@@ -160,9 +197,9 @@ public class TablaDeSimbolos {
             String metodo = metodoActual+" "+parametros;
             metodo = metodo.trim();
             if (metodos.get(metodo)!=null) {
-                metodos.put(metodo, metodos.get(metodo)+1);
+                metodos.get(metodo)[0]++;
             } else {
-                metodos.put(metodo, 1);
+                metodos.put(metodo, new int[]{1,cantidadParametros});
             }
 
             metodoActual = "";
@@ -172,18 +209,22 @@ public class TablaDeSimbolos {
     
     private void recorrerParametro(TablaDeSimbolos parametro){
         String tipoParametro = null;
+        
+        String encontradoEn = metodoActual.equals("")? "Clase "+claseActual : "Metodo "+metodoActual;
         for (Object parte : parametro.getSimbolos().keySet()) {
             switch (parametro.getSimbolos().get(parte)) {
                 case "Tipo":
                     tipoParametro = ((Symbol)parte).value.toString();
                     break;
                 case "Identificador":
-                    String variable = tipoParametro+" "+((Symbol)parte).value.toString();
+                    String variable = ((Symbol)parte).value.toString()+" "+tipoParametro;
                     parametrosMetodo.add(variable);
                     if (variables.get(variable)!=null) {
-                        variables.put(variable, variables.get(variable)+1);
+                        variables.get(variable).add(encontradoEn);
                     } else {
-                        variables.put(variable, 1);
+                        ArrayList<String> ocurrencia = new ArrayList<>();
+                        ocurrencia.add(encontradoEn);
+                        variables.put(variable, ocurrencia);
                     }
                     break;
                 default:
@@ -196,7 +237,7 @@ public class TablaDeSimbolos {
         System.out.println("Clases Encontradas Repetidas");
         for (String clase : clases.keySet()) {
             if (clases.get(clase)>1) {
-                System.out.println(clase+" "+clases.get(clase));
+                System.out.println(clase.split(" ")[0]);
             }
         }
     }
@@ -204,8 +245,8 @@ public class TablaDeSimbolos {
     public void metodosEncontrados(){
         System.out.println("Metodos Encontrados Repetidos");
         for (String metodo : metodos.keySet()) {
-            if (metodos.get(metodo)>1) {
-                System.out.println(metodo+" "+metodos.get(metodo));
+            if (metodos.get(metodo)[0]>1) {
+                System.out.println(metodo+" "+metodos.get(metodo)[1]);
             }
         }
     }
@@ -213,8 +254,8 @@ public class TablaDeSimbolos {
     public void variablesEncontradas(){
         System.out.println("Variables Encontradas Repetidas");
         for (String variable : variables.keySet()) {
-            if (variables.get(variable)>1) {
-                System.out.println(variable+" "+this.variables.get(variable));
+            if (variables.get(variable).size()>1) {
+                System.out.println(variable+" "+variables.get(variable).toString());
             }
         }
     }
@@ -227,19 +268,4 @@ public class TablaDeSimbolos {
         indentacion+="└λ";
         return indentacion;
     }
-    
-    /*
-    private Hashtable<Symbol, InformacionEntrada> simbolos; //Indica los simbolos que componen la tabla
-    
-    public TablaDeSimbolos(){
-        this.simbolos = new Hashtable<>();
-    }
-    
-    public void agregarSimbolo(Symbol simbolo, InformacionEntrada contenido){
-        simbolos.put(simbolo, contenido);
-    }
-    public InformacionEntrada getSimbolo(Symbol simbolo){
-        return simbolos.get(simbolo);
-    }
-    */
 }
